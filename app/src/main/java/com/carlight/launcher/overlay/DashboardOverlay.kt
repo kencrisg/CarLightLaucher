@@ -68,7 +68,7 @@ class DashboardOverlay(private val app: Context) {
             override fun onPassthroughChanged(enabled: Boolean) { touch?.setPassthrough(enabled) }
             override fun onLaunchingApp() = DashboardController.onLaunchingApp()
             override fun onMapFullscreen() = DashboardController.openMapFullscreen(app)
-            override fun onMapReload() = DashboardController.bringMapToFront(app)
+            override fun onMapReload() = DashboardController.reloadMap(app)
             override fun onThemeChanged() {
                 rebuild()
                 show()
@@ -79,7 +79,7 @@ class DashboardOverlay(private val app: Context) {
         d.root.setPadding(0, statusBarHeight(), 0, 0)
         touch = TouchRegion(d.root).also { region ->
             d.root.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
-                override fun onViewAttachedToWindow(v: View) { if (!region.installed) region.install() }
+                override fun onViewAttachedToWindow(v: View) = region.install()
                 override fun onViewDetachedFromWindow(v: View) {}
             })
         }

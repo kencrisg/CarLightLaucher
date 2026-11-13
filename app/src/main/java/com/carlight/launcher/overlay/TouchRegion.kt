@@ -16,11 +16,14 @@ import java.lang.reflect.Proxy
 class TouchRegion(private val root: View) {
 
     private val hole = Rect()
+    private var listener: Any? = null
     private val islands = mutableListOf<Rect>()
     private var passthrough = true
-    var installed = false
-        private set
-
+    /**
+     * Instalar en CADA attach: al quitar y volver a añadir la ventana (ocultar/mostrar el panel)
+     * Android crea un ViewTreeObserver nuevo y el listener anterior se pierde. Sin él, la ventana
+     * vuelve a ser táctil completa y el mapa deja de recibir los gestos.
+     */
     fun install() {
         try {
             val listenerCls = Class.forName("android.view.ViewTreeObserver\$OnComputeInternalInsetsListener")
@@ -44,9 +47,17 @@ class TouchRegion(private val root: View) {
                     else -> null
                 }
             }
+            val vto = root.viewTreeObserver
+            listener?.let { old ->
+                runCatching {
+                    ViewTreeObserver::class.java.getMethod("removeOnComputeInternalInsetsListener", listenerCls)
+                        .invoke(vto, old)
+                }
+            }
             ViewTreeObserver::class.java.getMethod("addOnComputeInternalInsetsListener", listenerCls)
-                .invoke(root.viewTreeObserver, proxy)
-            installed = true
+                .invoke(vto, proxy)
+            listener = proxy
+            root.requestLayout()
         } catch (e: Exception) {
             Log.w("TouchRegion", "No disponible: el hueco no dejará pasar toques", e)
         }

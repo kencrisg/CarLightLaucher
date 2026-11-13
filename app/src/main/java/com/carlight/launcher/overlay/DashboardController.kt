@@ -21,6 +21,8 @@ object DashboardController {
 
     private var overlay: DashboardOverlay? = null
     private var mapFullscreen = false
+    /** Última Activity al frente según [ForegroundWatcher]. */
+    private var foregroundPkg: String? = null
     private val activityCache = HashMap<String, Boolean>()
 
     /** true si el servicio de accesibilidad está conectado (detección fiable de la app al frente). */
@@ -48,6 +50,17 @@ object DashboardController {
         bringMapToFront(ctx)
     }
 
+    /** Botón ⟳: si el mapa ya está al frente solo re-muestra el panel; si no, lo trae. */
+    fun reloadMap(ctx: Context) {
+        val mapPkg = MapsLauncher.installedPackage(ctx)
+        if (watcherConnected && foregroundPkg == mapPkg) {
+            overlay?.hide()
+            overlay(ctx).show()
+        } else {
+            bringMapToFront(ctx)
+        }
+    }
+
     fun bringMapToFront(ctx: Context) {
         val pkg = MapsLauncher.installedPackage(ctx) ?: return
         val intent = ctx.packageManager.getLaunchIntentForPackage(pkg) ?: return
@@ -64,6 +77,7 @@ object DashboardController {
     /** Llamado por [ForegroundWatcher] en cada TYPE_WINDOW_STATE_CHANGED. */
     fun onWindowStateChanged(ctx: Context, pkg: String, cls: String) {
         if (!isActivity(ctx, pkg, cls)) return   // diálogos, toasts, paneles de volumen, etc.
+        foregroundPkg = pkg
         val mapPkg = MapsLauncher.installedPackage(ctx)
         when {
             pkg == ctx.packageName -> if (cls == HomeActivity::class.java.name) onHomeShown(ctx)
