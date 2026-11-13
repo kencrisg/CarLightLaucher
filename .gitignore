@@ -1,0 +1,18 @@
+# Volcados de la radio (APKs propietarios, logs)
+radio_dump/
+
+# Android / Gradle
+.gradle/
+build/
+*/build/
+local.properties
+.idea/
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+
+# macOS
+.DS_Store

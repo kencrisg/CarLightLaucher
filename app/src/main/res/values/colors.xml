@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Paleta DÍA (tomada del tema de fábrica: cielo claro, vidrio blanco, acentos violeta/azul). -->
+<resources>
+    <color name="text_primary">#FF1B2440</color>
+    <color name="text_secondary">#FF56607F</color>
+    <color name="text_hint">#FF8A93AD</color>
+    <color name="icon_primary">#FF1E2A4A</color>
+    <color name="accent">#FF7C5CFF</color>
+
+    <!-- Vidrio -->
+    <color name="glass_tint">#73FFFFFF</color>
+    <color name="glass_highlight">#80FFFFFF</color>
+    <color name="glass_stroke">#B3FFFFFF</color>
+    <color name="glass_pressed">#1A1B2440</color>
+
+    <!-- Velocímetro -->
+    <color name="gauge_track">#261B2440</color>
+    <color name="gauge_1">#FF3B82F6</color>
+    <color name="gauge_2">#FF8B5CF6</color>
+    <color name="gauge_3">#FFEC4899</color>
+
+    <!-- Fondo de respaldo (antes de generar el fondo con vidrio) -->
+    <color name="wp_start">#FFCFE2FA</color>
+    <color name="wp_center">#FFE4ECFB</color>
+    <color name="wp_end">#FFF0EAFB</color>
+
+    <color name="drawer_scrim">#F2EAF1FC</color>
+    <color name="badge_bg">#1A1B2440</color>
+    <color name="navbar">#FFE3ECFA</color>
+</resources>

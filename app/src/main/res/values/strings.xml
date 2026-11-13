@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">CarLight</string>
+
+    <string name="bt_label">Bluetooth</string>
+    <string name="bt_idle_title">Música Bluetooth</string>
+    <string name="bt_idle_subtitle">Toca para abrir</string>
+
+    <string name="radio_label">Radio FM</string>
+    <string name="radio_unit">MHz</string>
+    <string name="radio_unknown">— — —</string>
+    <string name="radio_preset">P%1$d</string>
+    <string name="radio_hint_open">Toca para abrir la radio</string>
+    <string name="demo">DEMO</string>
+
+    <string name="nav_title">Navegar</string>
+    <string name="nav_subtitle">Organic Maps</string>
+    <string name="nav_missing">Organic Maps\nno instalado</string>
+
+    <string name="gps_fix">GPS</string>
+    <string name="gps_searching">Buscando GPS…</string>
+    <string name="gps_no_permission">Sin permiso de ubicación</string>
+    <string name="gps_disabled">GPS desactivado</string>
+
+    <string name="theme_auto">Tema automático (día/noche por hora)</string>
+    <string name="theme_day">Tema día</string>
+    <string name="theme_night">Tema noche</string>
+
+    <string name="drawer_title">Aplicaciones</string>
+    <string name="drawer_pick_title">Elige una app para el dock</string>
+    <string name="dock_add">Añadir</string>
+    <string name="dock_apps">Apps</string>
+    <string name="app_not_found">No se pudo abrir la aplicación</string>
+
+    <string name="cd_prev">Anterior</string>
+    <string name="cd_next">Siguiente</string>
+    <string name="cd_play_pause">Reproducir o pausar</string>
+    <string name="cd_seek_down">Buscar hacia abajo</string>
+    <string name="cd_seek_up">Buscar hacia arriba</string>
+    <string name="cd_close">Cerrar</string>
+    <string name="cd_theme">Cambiar tema</string>
+</resources>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Paleta NOCHE (tomada del tema de fábrica: violeta profundo, neón magenta/cian, vidrio oscuro). -->
+<resources>
+    <color name="text_primary">#FFFFFFFF</color>
+    <color name="text_secondary">#B3EDE6FF</color>
+    <color name="text_hint">#80EDE6FF</color>
+    <color name="icon_primary">#FFFFFFFF</color>
+    <color name="accent">#FF8B5CF6</color>
+
+    <color name="glass_tint">#24FFFFFF</color>
+    <color name="glass_highlight">#26FFFFFF</color>
+    <color name="glass_stroke">#40FFFFFF</color>
+    <color name="glass_pressed">#1FFFFFFF</color>
+
+    <color name="gauge_track">#26FFFFFF</color>
+    <color name="gauge_1">#FF22D3EE</color>
+    <color name="gauge_2">#FF8B5CF6</color>
+    <color name="gauge_3">#FFFF2E93</color>
+
+    <color name="wp_start">#FF140C33</color>
+    <color name="wp_center">#FF2A1050</color>
+    <color name="wp_end">#FF4E1466</color>
+
+    <color name="drawer_scrim">#F2120A26</color>
+    <color name="badge_bg">#33FFFFFF</color>
+    <color name="navbar">#FF120A26</color>
+</resources>
