@@ -8,6 +8,8 @@ data class BtState(
     val artist: String?,
     val playing: Boolean,
     val demo: Boolean = false,
+    /** false = no hay teléfono conectado por Bluetooth. */
+    val connected: Boolean = true,
 )
 
 interface BtSource {
@@ -18,11 +20,14 @@ interface BtSource {
     fun prev()
     fun open()
 
+    /** Otra fuente (radio) toma el audio desde el panel: pausar el teléfono si suena. */
+    fun pauseForOtherSource() {}
+
     companion object {
         const val TW_BT_PKG = "com.tw.bt"
 
-        /** Fase 1: teclas multimedia en la radio real; demo en el emulador. Fase 3 añadirá MediaBrowser (AVRCP). */
+        /** Sesión AVRCP real en la radio; demo en el emulador. */
         fun create(ctx: Context): BtSource =
-            if (AppLauncher.isInstalled(ctx, TW_BT_PKG)) MediaKeyBtSource(ctx) else DemoBtSource()
+            if (AppLauncher.isInstalled(ctx, TW_BT_PKG)) A2dpBtSource(ctx) else DemoBtSource()
     }
 }

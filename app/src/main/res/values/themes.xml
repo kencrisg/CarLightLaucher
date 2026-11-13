@@ -19,7 +19,7 @@
 
     <style name="CtrlButton">
         <item name="android:layout_width">0dp</item>
-        <item name="android:layout_height">52dp</item>
+        <item name="android:layout_height">60dp</item>
         <item name="android:layout_weight">1</item>
         <item name="android:background">?android:attr/selectableItemBackgroundBorderless</item>
         <item name="android:scaleType">center</item>
@@ -44,10 +44,17 @@
         <item name="android:tint">#FFFFFFFF</item>
     </style>
 
-    <!-- Fila de controles: consume los toques entre botones (no abre la app) -->
+    <!--
+      Zona de controles: ocupa todo el ancho de la tarjeta (la tarjeta no tiene relleno lateral) y su parte baja.
+      Consume cualquier toque que no caiga en un botón, así tocar "cerca" de un botón NUNCA abre la app.
+    -->
     <style name="ControlRow">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
+        <item name="android:minHeight">80dp</item>
+        <item name="android:paddingHorizontal">10dp</item>
+        <item name="android:paddingTop">10dp</item>
+        <item name="android:paddingBottom">10dp</item>
         <item name="android:clickable">true</item>
         <item name="android:gravity">center</item>
         <item name="android:orientation">horizontal</item>

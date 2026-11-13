@@ -5,11 +5,14 @@
     <string name="bt_label">Bluetooth</string>
     <string name="bt_idle_title">Música Bluetooth</string>
     <string name="bt_idle_subtitle">Toca para abrir</string>
+    <string name="bt_disconnected">Sin teléfono</string>
+    <string name="bt_disconnected_hint">Conecta tu teléfono por Bluetooth</string>
 
     <string name="radio_label">Radio FM</string>
     <string name="radio_unit">MHz</string>
     <string name="radio_unknown">— — —</string>
     <string name="radio_preset">P%1$d</string>
+    <string name="radio_preset_long">Presintonía %1$d</string>
     <string name="radio_hint_open">Toca para abrir la radio</string>
     <string name="demo">DEMO</string>
 

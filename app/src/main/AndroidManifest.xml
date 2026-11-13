@@ -5,8 +5,16 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
 
+    <!-- Recibir los broadcasts del stack Bluetooth (título/artista AVRCP) -->
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+
     <!-- Panel flotante sobre Organic Maps (mapa en vivo) -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <!-- Frecuencia de la radio: la app de fábrica solo la registra en el log (se concede por adb) -->
+    <uses-permission android:name="android.permission.READ_LOGS"
+        xmlns:tools="http://schemas.android.com/tools"
+        tools:ignore="ProtectedPermissions" />
 
     <application
         android:allowBackup="false"

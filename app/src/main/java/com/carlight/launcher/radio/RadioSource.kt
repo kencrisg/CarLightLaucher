@@ -25,12 +25,20 @@ interface RadioSource {
     /** true si los controles abren la app de fábrica (hay que ocultar el panel flotante). */
     val opensApp: Boolean get() = false
 
+    /** El panel lo asigna: ocultarse y abrir la app de radio (cuando un control no surte efecto). */
+    var onNeedsApp: (() -> Unit)?
+        get() = null
+        set(_) {}
+
     companion object {
         const val TW_RADIO_PKG = "com.tw.radio"
 
-        /** Fase 1: fallback (nivel C) en la radio real; demo en el emulador. Fase 4 añadirá TopwayRadioSource. */
-        fun create(ctx: Context): RadioSource =
-            if (AppLauncher.isInstalled(ctx, TW_RADIO_PKG)) FallbackRadioSource(ctx) else DemoRadioSource()
+        /** Topway real si existe el centro de comandos; si no, abrir la app; en el emulador, demo. */
+        fun create(ctx: Context): RadioSource = when {
+            !AppLauncher.isInstalled(ctx, TW_RADIO_PKG) -> DemoRadioSource()
+            com.carlight.launcher.topway.TwCommandClient.isAvailable(ctx) -> TopwayRadioSource(ctx)
+            else -> FallbackRadioSource(ctx)
+        }
     }
 }
 

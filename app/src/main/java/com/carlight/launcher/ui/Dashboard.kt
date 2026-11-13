@@ -256,8 +256,17 @@ class Dashboard(
     }
 
     private fun renderBt(s: BtState) {
-        b.btTitle.text = s.title ?: ctx.getString(R.string.bt_idle_title)
-        b.btArtist.text = s.artist ?: ctx.getString(R.string.bt_idle_subtitle)
+        b.btTitle.text = when {
+            s.title != null -> s.title
+            !s.connected -> ctx.getString(R.string.bt_disconnected)
+            else -> ctx.getString(R.string.bt_idle_title)
+        }
+        b.btArtist.text = when {
+            s.artist != null -> s.artist
+            !s.connected -> ctx.getString(R.string.bt_disconnected_hint)
+            s.title != null -> ""
+            else -> ctx.getString(R.string.bt_idle_subtitle)
+        }
         b.btPlay.setImageResource(if (s.playing) R.drawable.ic_pause else R.drawable.ic_play)
         b.btDemo.visibility = if (s.demo) View.VISIBLE else View.GONE
     }
@@ -265,12 +274,17 @@ class Dashboard(
     // ---------- Radio ----------
 
     private fun setupRadioCard() {
+        radio.onNeedsApp = { launching(); radio.open() }
         // Fase 1: los controles de radio abren la app de fábrica (nivel C) -> ocultar el panel.
         b.cardRadio.setOnClickListener { launching(); radio.open() }
-        b.radioNext.setOnClickListener { if (radio.opensApp) launching(); radio.next() }
-        b.radioPrev.setOnClickListener { if (radio.opensApp) launching(); radio.prev() }
-        b.radioSeekUp.setOnClickListener { if (radio.opensApp) launching(); radio.seekUp() }
-        b.radioSeekDown.setOnClickListener { if (radio.opensApp) launching(); radio.seekDown() }
+        fun radioControl(action: () -> Unit) {
+            if (radio.opensApp) launching() else bt.pauseForOtherSource()
+            action()
+        }
+        b.radioNext.setOnClickListener { radioControl(radio::next) }
+        b.radioPrev.setOnClickListener { radioControl(radio::prev) }
+        b.radioSeekUp.setOnClickListener { radioControl(radio::seekUp) }
+        b.radioSeekDown.setOnClickListener { radioControl(radio::seekDown) }
     }
 
     private fun renderRadio(s: RadioState) {
@@ -279,6 +293,7 @@ class Dashboard(
         b.radioUnit.visibility = if (freq != null) View.VISIBLE else View.GONE
         b.radioSub.text = when {
             freq == null -> ctx.getString(R.string.radio_hint_open)
+            s.preset > 0 -> ctx.getString(R.string.radio_preset_long, s.preset)
             s.preset > 0 -> ctx.getString(R.string.radio_label) + " · " + ctx.getString(R.string.radio_preset, s.preset)
             else -> ctx.getString(R.string.radio_label)
         }

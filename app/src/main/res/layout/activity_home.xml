@@ -78,13 +78,12 @@
                 android:clickable="true"
                 android:focusable="true"
                 android:orientation="vertical"
-                android:paddingHorizontal="16dp"
-                android:paddingTop="14dp"
-                android:paddingBottom="10dp">
+                android:paddingTop="14dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginHorizontal="16dp"
                     android:gravity="center_vertical"
                     android:orientation="horizontal">
 
@@ -109,11 +108,13 @@
 
                 <TextView
                     android:id="@+id/btTitle"
-                    style="@style/MediaTitle" />
+                    style="@style/MediaTitle"
+                    android:layout_marginHorizontal="16dp" />
 
                 <TextView
                     android:id="@+id/btArtist"
-                    style="@style/MediaSubtitle" />
+                    style="@style/MediaSubtitle"
+                    android:layout_marginHorizontal="16dp" />
 
                 <Space
                     android:layout_width="match_parent"
@@ -213,13 +214,12 @@
                 android:clickable="true"
                 android:focusable="true"
                 android:orientation="vertical"
-                android:paddingHorizontal="16dp"
-                android:paddingTop="14dp"
-                android:paddingBottom="10dp">
+                android:paddingTop="14dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginHorizontal="16dp"
                     android:gravity="center_vertical"
                     android:orientation="horizontal">
 
@@ -245,6 +245,7 @@
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginHorizontal="16dp"
                     android:baselineAligned="true"
                     android:orientation="horizontal">
 
@@ -269,7 +270,8 @@
 
                 <TextView
                     android:id="@+id/radioSub"
-                    style="@style/MediaSubtitle" />
+                    style="@style/MediaSubtitle"
+                    android:layout_marginHorizontal="16dp" />
 
                 <Space
                     android:layout_width="match_parent"
