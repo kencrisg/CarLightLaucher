@@ -7,6 +7,7 @@ import android.graphics.Canvas
 import android.graphics.ColorFilter
 import android.graphics.LinearGradient
 import android.graphics.Matrix
+import android.graphics.Path
 import android.graphics.Paint
 import android.graphics.PixelFormat
 import android.graphics.Rect
@@ -20,7 +21,11 @@ import com.carlight.launcher.R
  * pinta la porción del fondo ya desenfocado (bitmap pequeño, escalado con filtro)
  * que queda detrás de la vista, más un tinte, un brillo superior y un borde.
  */
-class GlassDrawable(res: Resources, private val radius: Float) : Drawable() {
+class GlassDrawable(
+    res: Resources,
+    private val radius: Float,
+    private val roundBottom: Boolean = true,
+) : Drawable() {
 
     private val density = res.displayMetrics.density
     private val tint = res.getColor(R.color.glass_tint, null)
@@ -37,6 +42,7 @@ class GlassDrawable(res: Resources, private val radius: Float) : Drawable() {
     }
 
     private val rect = RectF()
+    private val path = Path()
     private val shaderMatrix = Matrix()
     private var shader: BitmapShader? = null
     private var scale = 1f
@@ -72,6 +78,9 @@ class GlassDrawable(res: Resources, private val radius: Float) : Drawable() {
     override fun onBoundsChange(bounds: Rect) {
         rect.set(bounds)
         rect.inset(density / 2, density / 2)
+        val b = if (roundBottom) radius else 0f
+        path.reset()
+        path.addRoundRect(rect, floatArrayOf(radius, radius, radius, radius, b, b, b, b), Path.Direction.CW)
         highlightPaint.shader = LinearGradient(
             0f, rect.top, 0f, rect.top + rect.height() * 0.45f,
             highlight, highlight and 0x00FFFFFF, Shader.TileMode.CLAMP,
@@ -79,11 +88,11 @@ class GlassDrawable(res: Resources, private val radius: Float) : Drawable() {
     }
 
     override fun draw(canvas: Canvas) {
-        if (shader != null) canvas.drawRoundRect(rect, radius, radius, blurPaint)
-        canvas.drawRoundRect(rect, radius, radius, fillPaint)
-        canvas.drawRoundRect(rect, radius, radius, highlightPaint)
-        if (pressed) canvas.drawRoundRect(rect, radius, radius, pressedPaint)
-        canvas.drawRoundRect(rect, radius, radius, strokePaint)
+        if (shader != null) canvas.drawPath(path, blurPaint)
+        canvas.drawPath(path, fillPaint)
+        canvas.drawPath(path, highlightPaint)
+        if (pressed) canvas.drawPath(path, pressedPaint)
+        canvas.drawPath(path, strokePaint)
     }
 
     override fun isStateful() = true

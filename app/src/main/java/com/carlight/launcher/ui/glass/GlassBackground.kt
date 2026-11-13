@@ -1,8 +1,7 @@
 package com.carlight.launcher.ui.glass
 
-import android.app.Activity
+import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.drawable.BitmapDrawable
 import android.view.View
 import com.carlight.launcher.util.Bg
 
@@ -10,17 +9,25 @@ import com.carlight.launcher.util.Bg
  * Genera el fondo y su copia desenfocada (en segundo plano, una vez por tamaño + tema)
  * y lo conecta con las tarjetas de vidrio.
  */
-class GlassBackground(private val activity: Activity, private val night: Boolean) {
+class GlassBackground(
+    private val context: Context,
+    private val night: Boolean,
+    private val onWallpaper: (Bitmap) -> Unit,
+) {
 
     private val cards = mutableListOf<Pair<View, GlassDrawable>>()
     private val loc = IntArray(2)
 
-    fun attach(view: View, radiusDp: Float) {
-        val d = GlassDrawable(activity.resources, radiusDp * activity.resources.displayMetrics.density)
+    fun attach(view: View, radiusDp: Float, roundBottom: Boolean = true) {
+        val d = GlassDrawable(context.resources, radiusDp * context.resources.displayMetrics.density, roundBottom)
         view.background = d
         cards += view to d
         cache?.takeIf { it.night == night }?.let { d.setSource(it.blur, it.scale) }
     }
+
+    private var released = false
+
+    fun release() { released = true }
 
     /** Llamar tras el layout: actualiza la posición de cada tarjeta y genera el fondo si hace falta. */
     fun onLayout(decor: View) {
@@ -45,7 +52,7 @@ class GlassBackground(private val activity: Activity, private val night: Boolean
             Bg.main.post {
                 pending = false
                 cache = result
-                if (!activity.isDestroyed) apply(result)
+                if (!released) apply(result)
             }
         }
     }
@@ -55,7 +62,7 @@ class GlassBackground(private val activity: Activity, private val night: Boolean
     private fun apply(c: Cache) {
         if (applied === c) return
         applied = c
-        activity.window.setBackgroundDrawable(BitmapDrawable(activity.resources, c.sharp))
+        onWallpaper(c.sharp)
         cards.forEach { it.second.setSource(c.blur, c.scale) }
     }
 

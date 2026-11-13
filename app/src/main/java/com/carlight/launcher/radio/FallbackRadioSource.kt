@@ -5,6 +5,7 @@ import com.carlight.launcher.util.AppLauncher
 
 /** Nivel C: sin integración con Topway; todos los controles abren la radio de fábrica. */
 class FallbackRadioSource(private val ctx: Context) : RadioSource {
+    override val opensApp = true
     override fun start(onState: (RadioState) -> Unit) = onState(RadioState(frequency = null))
     override fun stop() {}
     override fun next() = open()

@@ -22,6 +22,9 @@ interface RadioSource {
     fun seekDown()
     fun open()
 
+    /** true si los controles abren la app de fábrica (hay que ocultar el panel flotante). */
+    val opensApp: Boolean get() = false
+
     companion object {
         const val TW_RADIO_PKG = "com.tw.radio"
 

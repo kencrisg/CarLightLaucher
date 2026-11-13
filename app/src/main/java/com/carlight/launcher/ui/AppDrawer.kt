@@ -16,6 +16,7 @@ class AppDrawer(
     private val b: ActivityHomeBinding,
     private val repo: AppRepository,
     private val onLaunch: (AppEntry) -> Unit,
+    private val onVisibilityChanged: (Boolean) -> Unit,
 ) {
     private var pickCallback: ((AppEntry) -> Unit)? = null
     private val iconPx = b.root.resources.getDimensionPixelSize(R.dimen.app_icon)
@@ -41,6 +42,7 @@ class AppDrawer(
     fun hide() {
         pickCallback = null
         b.drawer.visibility = View.GONE
+        onVisibilityChanged(false)
     }
 
     fun refresh() = adapter.notifyDataSetChanged()
@@ -51,6 +53,7 @@ class AppDrawer(
         b.drawerGrid.setSelection(0)
         b.drawer.alpha = 0f
         b.drawer.visibility = View.VISIBLE
+        onVisibilityChanged(true)
         b.drawer.animate().alpha(1f).setDuration(140).start()
     }
 

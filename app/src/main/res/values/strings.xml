@@ -14,6 +14,9 @@
     <string name="demo">DEMO</string>
 
     <string name="nav_title">Navegar</string>
+    <string name="map_title">Organic Maps</string>
+    <string name="map_tap_to_open">Toca para abrir el mapa</string>
+    <string name="a11y_description">CarLight usa este servicio solo para saber qué app está al frente y ocultar su panel cuando abres otra app (radio, llamada, cámara de retroceso). No lee el contenido de las pantallas.</string>
     <string name="nav_subtitle">Organic Maps</string>
     <string name="nav_missing">Organic Maps\nno instalado</string>
 
@@ -39,4 +42,6 @@
     <string name="cd_seek_up">Buscar hacia arriba</string>
     <string name="cd_close">Cerrar</string>
     <string name="cd_theme">Cambiar tema</string>
+    <string name="cd_map_reload">Recargar mapa</string>
+    <string name="cd_map_fullscreen">Mapa a pantalla completa</string>
 </resources>

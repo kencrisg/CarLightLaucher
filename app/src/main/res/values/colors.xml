@@ -27,4 +27,7 @@
     <color name="drawer_scrim">#F2EAF1FC</color>
     <color name="badge_bg">#1A1B2440</color>
     <color name="navbar">#FFE3ECFA</color>
+    <color name="tonal_bg">#141B2440</color>
+    <color name="fab_bg">#EBFFFFFF</color>
+    <color name="fab_stroke">#331B2440</color>
 </resources>

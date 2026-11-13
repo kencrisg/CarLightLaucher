@@ -1,16 +1,17 @@
 package com.carlight.launcher.ui
 
 import android.view.LayoutInflater
+import android.widget.ImageView
 import android.widget.LinearLayout
 import com.carlight.launcher.R
 import com.carlight.launcher.apps.AppRepository
 import com.carlight.launcher.apps.IconCache
-import com.carlight.launcher.databinding.ItemAppBinding
+import com.carlight.launcher.databinding.ItemDockBinding
 import com.carlight.launcher.prefs.Prefs
 import com.carlight.launcher.util.AppLauncher
 
 /**
- * Dock de 5 ranuras configurables + botón fijo "Apps".
+ * Cuadrícula de apps 3x2: 5 ranuras configurables + botón fijo "Apps".
  * Toque: abre la app. Pulsación larga: elegir otra app para la ranura.
  */
 class DockController(
@@ -19,17 +20,20 @@ class DockController(
     private val repo: AppRepository,
     private val pickApp: (onPicked: (String) -> Unit) -> Unit,
     private val openDrawer: () -> Unit,
+    private val onLaunch: () -> Unit,
 ) {
     private val ctx = container.context
     private val inflater = LayoutInflater.from(ctx)
-    private val iconPx = ctx.resources.getDimensionPixelSize(R.dimen.app_icon)
+    private val iconPx = ctx.resources.getDimensionPixelSize(R.dimen.dock_icon)
+    private var row: LinearLayout? = null
 
     fun render() {
         container.removeAllViews()
+        row = null
         prefs.dock().forEachIndexed { index, pkg -> addSlot(index, pkg) }
         addItem(ctx.getString(R.string.dock_apps)) { ib ->
             ib.icon.setBackgroundResource(R.drawable.bg_tile_apps)
-            ib.icon.scaleType = android.widget.ImageView.ScaleType.CENTER
+            ib.icon.scaleType = ImageView.ScaleType.CENTER
             ib.icon.setImageResource(R.drawable.ic_apps)
             ib.root.setOnClickListener { openDrawer() }
         }
@@ -37,12 +41,15 @@ class DockController(
 
     private fun addSlot(index: Int, pkg: String?) {
         val entry = pkg?.let { repo.find(it) }
-        when {
+        val ib = when {
             entry != null -> addItem(entry.label) { ib ->
                 IconCache.bind(ib.icon, entry.component, iconPx)
-                ib.root.setOnClickListener { AppLauncher.launch(ctx, entry.component) }
+                ib.root.setOnClickListener {
+                    onLaunch()
+                    AppLauncher.launch(ctx, entry.component)
+                }
             }
-            // Las apps aún no se cargan: ranura vacía para no mostrar "+" un instante.
+            // Las apps aún no se cargan: celda vacía para no mostrar "+" un instante.
             !repo.loaded -> addItem("") { }
             else -> addItem(ctx.getString(R.string.dock_add)) { ib ->
                 ib.icon.setImageResource(R.drawable.ic_add)
@@ -50,7 +57,7 @@ class DockController(
                 ib.root.setOnClickListener { pick(index) }
             }
         }
-        container.getChildAt(container.childCount - 1).setOnLongClickListener {
+        ib.root.setOnLongClickListener {
             pick(index)
             true
         }
@@ -61,10 +68,20 @@ class DockController(
         render()
     }
 
-    private inline fun addItem(label: String, bind: (ItemAppBinding) -> Unit) {
-        val ib = ItemAppBinding.inflate(inflater, container, false)
+    private inline fun addItem(label: String, bind: (ItemDockBinding) -> Unit): ItemDockBinding {
+        val r = row?.takeIf { it.childCount < COLUMNS } ?: LinearLayout(ctx).also {
+            it.orientation = LinearLayout.HORIZONTAL
+            container.addView(it, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
+            row = it
+        }
+        val ib = ItemDockBinding.inflate(inflater, r, false)
         ib.label.text = label
         bind(ib)
-        container.addView(ib.root, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f))
+        r.addView(ib.root, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f))
+        return ib
+    }
+
+    private companion object {
+        const val COLUMNS = 3
     }
 }

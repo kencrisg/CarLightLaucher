@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <dimen name="app_icon">56dp</dimen>
+    <dimen name="map_header">44dp</dimen>
+    <dimen name="side_column">240dp</dimen>
+    <dimen name="gap">10dp</dimen>
+    <dimen name="card_radius">24dp</dimen>
+    <dimen name="dock_icon">46dp</dimen>
 </resources>
