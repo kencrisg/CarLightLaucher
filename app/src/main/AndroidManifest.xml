@@ -42,6 +42,13 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".ui.SettingsActivity"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation|density"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:label="@string/settings_title" />
+
         <!-- Solo detecta qué app está al frente para ocultar/mostrar el panel flotante -->
         <service
             android:name=".overlay.ForegroundWatcher"

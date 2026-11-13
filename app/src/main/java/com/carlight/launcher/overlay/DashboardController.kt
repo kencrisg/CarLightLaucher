@@ -74,13 +74,21 @@ object DashboardController {
 
     fun restartSpeed() = overlay?.restartSpeed()
 
+    fun openSettings(ctx: Context) {
+        overlay?.hide()
+        ctx.startActivity(
+            Intent(ctx, com.carlight.launcher.ui.SettingsActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
+    }
+
     /** Llamado por [ForegroundWatcher] en cada TYPE_WINDOW_STATE_CHANGED. */
     fun onWindowStateChanged(ctx: Context, pkg: String, cls: String) {
         if (!isActivity(ctx, pkg, cls)) return   // diálogos, toasts, paneles de volumen, etc.
         foregroundPkg = pkg
         val mapPkg = MapsLauncher.installedPackage(ctx)
         when {
-            pkg == ctx.packageName -> if (cls == HomeActivity::class.java.name) onHomeShown(ctx)
+            pkg == ctx.packageName ->
+                if (cls == HomeActivity::class.java.name) onHomeShown(ctx) else overlay?.hide()   // Ajustes
             pkg == mapPkg -> if (mapFullscreen) overlay?.hide() else overlay(ctx).show()
             else -> {
                 mapFullscreen = false

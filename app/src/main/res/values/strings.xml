@@ -47,4 +47,41 @@
     <string name="cd_theme">Cambiar tema</string>
     <string name="cd_map_reload">Recargar mapa</string>
     <string name="cd_map_fullscreen">Mapa a pantalla completa</string>
+
+    <!-- Ajustes -->
+    <string name="settings_title">Ajustes</string>
+    <string name="settings_done">Listo</string>
+    <string name="cat_appearance">Apariencia</string>
+    <string name="cat_units">Unidades</string>
+    <string name="cat_panel">Panel</string>
+    <string name="cat_system">Sistema</string>
+    <string name="set_theme">Tema</string>
+    <string name="set_theme_auto">Automático</string>
+    <string name="set_theme_light">Claro</string>
+    <string name="set_theme_dark">Oscuro</string>
+    <string name="set_schedule">Horario del modo automático</string>
+    <string name="set_day_from">Día desde</string>
+    <string name="set_night_from">Noche desde</string>
+    <string name="set_accent">Color de acento</string>
+    <string name="set_wallpaper">Fondo</string>
+    <string name="set_wallpaper_city">Ciudad</string>
+    <string name="set_wallpaper_plain">Solo luces</string>
+    <string name="set_speed_unit">Velocidad</string>
+    <string name="set_gauge_max">Escala del velocímetro</string>
+    <string name="set_clock">Formato de hora</string>
+    <string name="set_clock_24">24 horas</string>
+    <string name="set_clock_12">12 horas</string>
+    <string name="set_dock">Accesos de la cuadrícula</string>
+    <string name="set_dock_hint">Mantén pulsado un acceso del panel para cambiarlo.</string>
+    <string name="set_dock_reset">Restablecer accesos</string>
+    <string name="set_dock_reset_done">Accesos restablecidos</string>
+    <string name="set_permissions">Permisos</string>
+    <string name="perm_overlay">Panel sobre el mapa</string>
+    <string name="perm_a11y">Detección de app al frente</string>
+    <string name="perm_location">Ubicación (velocímetro)</string>
+    <string name="perm_logs">Frecuencia de la radio</string>
+    <string name="perm_ok">Activo</string>
+    <string name="perm_missing">Falta</string>
+    <string name="set_about">Acerca de</string>
+    <string name="set_version">CarLight %1$s · Topway TS7</string>
 </resources>

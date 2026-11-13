@@ -37,36 +37,54 @@
                     android:layout_gravity="center" />
             </FrameLayout>
 
-            <!-- Hora -->
-            <LinearLayout
+            <!-- Hora (+ acceso a Ajustes) -->
+            <FrameLayout
                 android:id="@+id/cardClock"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_marginTop="@dimen/gap"
-                android:layout_weight="0.7"
-                android:gravity="center"
-                android:orientation="vertical">
+                android:layout_weight="0.7">
 
-                <TextClock
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:fontFamily="sans-serif-light"
-                    android:format12Hour="HH:mm"
-                    android:format24Hour="HH:mm"
-                    android:includeFontPadding="false"
-                    android:letterSpacing="-0.02"
-                    android:textColor="@color/text_primary"
-                    android:textSize="50sp" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:orientation="vertical">
 
-                <TextClock
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:format12Hour="EEE d 'de' MMMM"
-                    android:format24Hour="EEE d 'de' MMMM"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="15sp" />
-            </LinearLayout>
+                    <TextClock
+                        android:id="@+id/clockTime"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif-light"
+                        android:format12Hour="h:mm"
+                        android:format24Hour="HH:mm"
+                        android:includeFontPadding="false"
+                        android:letterSpacing="-0.02"
+                        android:textColor="@color/text_primary"
+                        android:textSize="50sp" />
+
+                    <TextClock
+                        android:id="@+id/clockDate"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:format12Hour="EEE d 'de' MMMM"
+                        android:format24Hour="EEE d 'de' MMMM"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="15sp" />
+                </LinearLayout>
+
+                <ImageButton
+                    android:id="@+id/openSettings"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:layout_gravity="top|end"
+                    android:layout_margin="4dp"
+                    android:alpha="0.75"
+                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/settings_title"
+                    android:src="@drawable/ic_settings" />
+            </FrameLayout>
 
             <!-- Bluetooth: toda la tarjeta abre la app, salvo la fila de controles -->
             <LinearLayout
@@ -349,12 +367,12 @@
                 android:textStyle="bold" />
 
             <ImageButton
-                android:id="@+id/themeToggle"
+                android:id="@+id/drawerSettings"
                 android:layout_width="56dp"
                 android:layout_height="56dp"
                 android:background="?android:attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/cd_theme"
-                android:src="@drawable/ic_theme_auto" />
+                android:contentDescription="@string/settings_title"
+                android:src="@drawable/ic_settings" />
 
             <ImageButton
                 android:id="@+id/drawerClose"

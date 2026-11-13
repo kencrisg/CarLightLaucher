@@ -42,7 +42,7 @@ class DockController(
     private fun addSlot(index: Int, pkg: String?) {
         val entry = pkg?.let { repo.find(it) }
         val ib = when {
-            entry != null -> addItem(entry.label) { ib ->
+            entry != null -> addItem(shortLabel(entry.pkg, entry.label)) { ib ->
                 IconCache.bind(ib.icon, entry.component, iconPx)
                 ib.root.setOnClickListener {
                     onLaunch()
@@ -83,5 +83,20 @@ class DockController(
 
     private companion object {
         const val COLUMNS = 3
+
+        /** Nombres cortos para la cuadrícula (240 dp / 3 columnas: ~9 caracteres caben). */
+        private val SHORT = mapOf(
+            "app.organicmaps.web" to "Mapa",
+            "app.organicmaps" to "Mapa",
+            "com.android.settings" to "Ajustes",
+            "com.tw.media" to "Música",
+            "com.tw.radio" to "Radio",
+            "com.tw.bt" to "Bluetooth",
+            "com.tw.eq" to "EQ",
+            "com.dofun.carsetting" to "Vehículo",
+            "com.android.chrome" to "Chrome",
+        )
+
+        fun shortLabel(pkg: String, label: String) = SHORT[pkg] ?: label
     }
 }

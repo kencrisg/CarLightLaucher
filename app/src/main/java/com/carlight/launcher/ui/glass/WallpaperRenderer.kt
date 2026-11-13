@@ -54,7 +54,7 @@ object WallpaperRenderer {
         neon = intArrayOf(0xFFFF2E93.toInt(), 0xFF22D3EE.toInt(), 0xFFB26BFF.toInt()),
     )
 
-    fun render(w: Int, h: Int, night: Boolean): Bitmap {
+    fun render(w: Int, h: Int, night: Boolean, skyline: Boolean = true): Bitmap {
         val p = if (night) NIGHT else DAY
         val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
         val c = Canvas(bmp)
@@ -78,7 +78,7 @@ object WallpaperRenderer {
         c.drawRect(0f, hf * 0.55f, wf, hf, paint)
         paint.shader = null
 
-        drawSkyline(c, w, h, p, paint)
+        if (skyline) drawSkyline(c, w, h, p, paint)
         return bmp
     }
 

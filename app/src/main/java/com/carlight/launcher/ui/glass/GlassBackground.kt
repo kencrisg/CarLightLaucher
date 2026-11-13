@@ -12,6 +12,7 @@ import com.carlight.launcher.util.Bg
 class GlassBackground(
     private val context: Context,
     private val night: Boolean,
+    private val skyline: Boolean = true,
     private val onWallpaper: (Bitmap) -> Unit,
 ) {
 
@@ -22,10 +23,12 @@ class GlassBackground(
         val d = GlassDrawable(context.resources, radiusDp * context.resources.displayMetrics.density, roundBottom)
         view.background = d
         cards += view to d
-        cache?.takeIf { it.night == night }?.let { d.setSource(it.blur, it.scale) }
+        cache?.takeIf { it.night == night && it.skyline == skyline }?.let { d.setSource(it.blur, it.scale) }
     }
 
     private var released = false
+    /** Por instancia: un panel reconstruido no debe esperar el fondo de otro estilo. */
+    private var pending = false
 
     fun release() { released = true }
 
@@ -39,16 +42,16 @@ class GlassBackground(
         val h = decor.height
         if (w == 0 || h == 0) return
         val c = cache
-        if (c != null && c.w == w && c.h == h && c.night == night) {
+        if (c != null && c.w == w && c.h == h && c.night == night && c.skyline == skyline) {
             apply(c)
             return
         }
         if (pending) return
         pending = true
         Bg.io.execute {
-            val sharp = WallpaperRenderer.render(w, h, night)
+            val sharp = WallpaperRenderer.render(w, h, night, skyline)
             val blur = Blur.downscaled(sharp, FACTOR, RADIUS)
-            val result = Cache(w, h, night, sharp, blur, w.toFloat() / blur.width)
+            val result = Cache(w, h, night, skyline, sharp, blur, w.toFloat() / blur.width)
             Bg.main.post {
                 pending = false
                 cache = result
@@ -66,12 +69,14 @@ class GlassBackground(
         cards.forEach { it.second.setSource(c.blur, c.scale) }
     }
 
-    private class Cache(val w: Int, val h: Int, val night: Boolean, val sharp: Bitmap, val blur: Bitmap, val scale: Float)
+    private class Cache(
+        val w: Int, val h: Int, val night: Boolean, val skyline: Boolean,
+        val sharp: Bitmap, val blur: Bitmap, val scale: Float,
+    )
 
     private companion object {
         const val FACTOR = 8   // 1024x600 → 128x75 (≈38 KB)
         const val RADIUS = 3
         @Volatile var cache: Cache? = null
-        var pending = false
     }
 }

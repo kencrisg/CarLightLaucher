@@ -16,6 +16,7 @@ import com.carlight.launcher.databinding.ActivityHomeBinding
 import com.carlight.launcher.media.BtSource
 import com.carlight.launcher.media.BtState
 import com.carlight.launcher.prefs.Prefs
+import com.carlight.launcher.prefs.SpeedUnit
 import com.carlight.launcher.radio.RadioSource
 import com.carlight.launcher.radio.RadioState
 import com.carlight.launcher.radio.formatFrequency
@@ -47,6 +48,8 @@ class Dashboard(
         /** Justo antes de abrir otra app desde el panel. */
         fun onLaunchingApp() {}
         fun onMapFullscreen()
+        /** Abrir la pantalla de Ajustes de CarLight. */
+        fun onOpenSettings() {}
         fun onMapReload()
         /** El tema efectivo (día/noche) cambió: hay que reconstruir el panel. */
         fun onThemeChanged()
@@ -61,7 +64,9 @@ class Dashboard(
     private val bt = BtSource.create(ctx)
     private val speed = GpsSpeedSource(ctx)
     private val wallpaper = WallpaperHoleDrawable(ctx.resources)
-    private val glass = GlassBackground(ctx, night) { wallpaper.setBitmap(it) }
+    private val glass = GlassBackground(ctx, night, prefs.skyline) { wallpaper.setBitmap(it) }
+    private val accent = Accent.current(prefs)
+    private val unit = prefs.speedUnit
     private val drawer: AppDrawer
     private val dock: DockController
 
@@ -121,7 +126,10 @@ class Dashboard(
             openDrawer = { drawer.showAll() },
             onLaunch = { launching() },
         )
-        setupThemeToggle()
+        applyPreferences()
+        b.openSettings.setOnClickListener { launching(); callbacks.onOpenSettings() }
+        b.drawerSettings.setOnClickListener { launching(); callbacks.onOpenSettings() }
+        b.cardClock.setOnLongClickListener { launching(); callbacks.onOpenSettings(); true }
         setupBtCard()
         setupRadioCard()
 
@@ -203,37 +211,32 @@ class Dashboard(
         callbacks.onHoleChanged(holeInWindow, islandRects)
     }
 
-    // ---------- Tema ----------
+    // ---------- Ajustes aplicados al panel ----------
 
-    private fun setupThemeToggle() {
-        b.themeToggle.setImageResource(
-            when (prefs.themeMode) {
-                ThemeMode.AUTO -> R.drawable.ic_theme_auto
-                ThemeMode.DAY -> R.drawable.ic_theme_day
-                ThemeMode.NIGHT -> R.drawable.ic_theme_night
-            }
+    private fun applyPreferences() {
+        // Hora 24 h / 12 h: TextClock usa format24Hour o format12Hour según el sistema; forzamos ambos.
+        val time = if (prefs.clock24) "HH:mm" else "h:mm"
+        b.clockTime.format24Hour = time
+        b.clockTime.format12Hour = time
+
+        // Velocímetro
+        b.speedGauge.unit = if (unit == SpeedUnit.MPH) "mph" else "km/h"
+        b.speedGauge.maxValue = prefs.gaugeMax.toFloat()
+        b.speedGauge.colors = accent.gauge
+
+        // Acento: botón ▶ de la música
+        b.btPlay.background = android.graphics.drawable.RippleDrawable(
+            android.content.res.ColorStateList.valueOf(0x40FFFFFF),
+            accent.pill(0f, oval = true),
+            null,
         )
-        b.themeToggle.setOnClickListener {
-            val next = ThemeMode.entries[(prefs.themeMode.ordinal + 1) % ThemeMode.entries.size]
-            prefs.themeMode = next
-            Toast.makeText(
-                ctx,
-                when (next) {
-                    ThemeMode.AUTO -> R.string.theme_auto
-                    ThemeMode.DAY -> R.string.theme_day
-                    ThemeMode.NIGHT -> R.string.theme_night
-                },
-                Toast.LENGTH_SHORT,
-            ).show()
-            if (ThemeController.isNight(next) != night) callbacks.onThemeChanged() else setupThemeToggle()
-        }
     }
 
     // ---------- Velocímetro ----------
 
     private fun renderSpeed(s: SpeedState) {
         b.speedGauge.setSpeed(
-            s.kmh,
+            s.kmh?.let { if (unit == SpeedUnit.MPH) Math.round(it * KMH_TO_MPH).toInt() else it },
             ctx.getString(
                 when (s.status) {
                     GpsStatus.FIX -> R.string.gps_fix
@@ -298,5 +301,9 @@ class Dashboard(
             else -> ctx.getString(R.string.radio_label)
         }
         b.radioDemo.visibility = if (s.demo) View.VISIBLE else View.GONE
+    }
+
+    private companion object {
+        const val KMH_TO_MPH = 0.621371
     }
 }

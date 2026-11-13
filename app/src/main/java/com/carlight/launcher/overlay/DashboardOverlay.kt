@@ -22,6 +22,8 @@ class DashboardOverlay(private val app: Context) {
     private var dashboard: Dashboard? = null
     private var touch: TouchRegion? = null
     private var night = false
+    /** Firma de los ajustes con los que se construyó el panel (ver Prefs.appearanceSignature). */
+    private var signature = ""
     private var attached = false
 
     val isShowing get() = attached
@@ -30,7 +32,8 @@ class DashboardOverlay(private val app: Context) {
 
     fun show() {
         if (!canShow()) return
-        if (dashboard == null || ThemeController.isNight(app) != night) rebuild()
+        val prefs = com.carlight.launcher.prefs.Prefs(app)
+        if (dashboard == null || ThemeController.isNight(app) != night || prefs.appearanceSignature() != signature) rebuild()
         val d = dashboard ?: return
         if (!attached) {
             wm.addView(d.root, params())
@@ -59,6 +62,7 @@ class DashboardOverlay(private val app: Context) {
             old.destroy()
         }
         night = ThemeController.isNight(app)
+        signature = com.carlight.launcher.prefs.Prefs(app).appearanceSignature()
         val themed = ContextThemeWrapper(
             app.createConfigurationContext(ThemeController.overrideFor(app, night)),
             R.style.Theme_CarLight,
@@ -69,6 +73,7 @@ class DashboardOverlay(private val app: Context) {
             override fun onLaunchingApp() = DashboardController.onLaunchingApp()
             override fun onMapFullscreen() = DashboardController.openMapFullscreen(app)
             override fun onMapReload() = DashboardController.reloadMap(app)
+            override fun onOpenSettings() = DashboardController.openSettings(app)
             override fun onThemeChanged() {
                 rebuild()
                 show()

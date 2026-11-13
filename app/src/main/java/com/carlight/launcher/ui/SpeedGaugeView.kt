@@ -20,7 +20,14 @@ class SpeedGaugeView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null,
 ) : View(context, attrs) {
 
-    var maxKmh = 180f
+    /** Máximo de la escala, en la unidad mostrada. */
+    var maxValue = 180f
+    /** "km/h" o "mph". */
+    var unit = "km/h"
+        set(v) { field = v; invalidate() }
+    /** 3 colores del arco (acento). null = colores del tema. */
+    var colors: IntArray? = null
+        set(v) { field = v; if (width > 0) onSizeChanged(width, height, width, height); invalidate() }
 
     private var stroke = 0f
 
@@ -35,10 +42,12 @@ class SpeedGaugeView @JvmOverloads constructor(
     private var status = ""
     private var animator: ValueAnimator? = null
 
-    fun setSpeed(kmh: Int?, statusText: String) {
+    /** @param value velocidad YA convertida a la unidad mostrada. */
+    fun setSpeed(value: Int?, statusText: String) {
+        val kmh = value
         status = statusText
         speed = kmh
-        val target = (kmh ?: 0).toFloat().coerceIn(0f, maxKmh)
+        val target = (kmh ?: 0).toFloat().coerceIn(0f, maxValue)
         animator?.cancel()
         animator = ValueAnimator.ofFloat(shown, target).apply {
             duration = 600
@@ -61,12 +70,11 @@ class SpeedGaugeView @JvmOverloads constructor(
         arc.set(left, top, left + size, top + size)
         val g = SweepGradient(
             arc.centerX(), arc.centerY(),
-            intArrayOf(
+            (colors ?: intArrayOf(
                 context.getColor(R.color.gauge_1),
                 context.getColor(R.color.gauge_2),
                 context.getColor(R.color.gauge_3),
-                context.getColor(R.color.gauge_3),
-            ),
+            )).let { intArrayOf(it[0], it[1], it[2], it[2]) },
             floatArrayOf(0f, 0.33f, 0.67f, 1f),
         )
         g.setLocalMatrix(Matrix().apply { setRotate(START - 6f, arc.centerX(), arc.centerY()) })
@@ -75,14 +83,15 @@ class SpeedGaugeView @JvmOverloads constructor(
 
     override fun onDraw(canvas: Canvas) {
         canvas.drawArc(arc, START, SWEEP, false, trackPaint)
-        val frac = shown / maxKmh
+        val frac = shown / maxValue
         if (frac > 0.003f) canvas.drawArc(arc, START, SWEEP * frac, false, progressPaint)
 
         val cx = arc.centerX()
         val cy = arc.centerY()
         val number = if (speed == null) "--" else shown.roundToInt().toString()
         canvas.drawText(number, cx, cy + numberPaint.textSize * 0.25f, numberPaint)
-        canvas.drawText(UNIT, cx, arc.bottom - stroke * 0.1f, unitPaint)
+        // Línea base por encima del borde: que no se corten los descendentes (la "p" de mph).
+        canvas.drawText(unit, cx, arc.bottom - stroke * 0.1f - unitPaint.descent(), unitPaint)
     }
 
     override fun onDetachedFromWindow() {
@@ -104,6 +113,5 @@ class SpeedGaugeView @JvmOverloads constructor(
     private companion object {
         const val START = 150f
         const val SWEEP = 240f
-        const val UNIT = "km/h"
     }
 }

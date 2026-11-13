@@ -19,6 +19,7 @@ class HomeActivity : Activity() {
 
     private var night = false
     private var dashboard: Dashboard? = null
+    private var signature = ""
 
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(newBase)
@@ -36,7 +37,11 @@ class HomeActivity : Activity() {
                 override fun onMapFullscreen() { com.carlight.launcher.nav.MapsLauncher.open(this@HomeActivity) }
                 override fun onMapReload() {}
                 override fun onThemeChanged() = recreate()
+                override fun onOpenSettings() {
+                    startActivity(Intent(this@HomeActivity, SettingsActivity::class.java))
+                }
             })
+            signature = com.carlight.launcher.prefs.Prefs(this).appearanceSignature()
             dashboard = d
             setContentView(d.root)
             @Suppress("DEPRECATION")
@@ -52,7 +57,9 @@ class HomeActivity : Activity() {
         if (d == null) {
             DashboardController.onHomeShown(this)
         } else {
-            if (ThemeController.isNight(this) != night) {
+            if (ThemeController.isNight(this) != night ||
+                com.carlight.launcher.prefs.Prefs(this).appearanceSignature() != signature
+            ) {
                 recreate()
                 return
             }

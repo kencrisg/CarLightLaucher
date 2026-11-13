@@ -10,18 +10,21 @@ enum class ThemeMode { AUTO, DAY, NIGHT }
 /** Día/noche propio del launcher (la radio no cambia el uiMode del sistema). */
 object ThemeController {
 
-    /** AUTO: noche entre las 18:30 y las 06:30. */
-    fun isNight(mode: ThemeMode): Boolean = when (mode) {
+    /** AUTO: noche fuera del horario de día configurado en Ajustes (por defecto 06:30–18:30). */
+    fun isNight(mode: ThemeMode, dayStart: Int = DAY_START, nightStart: Int = NIGHT_START): Boolean = when (mode) {
         ThemeMode.DAY -> false
         ThemeMode.NIGHT -> true
         ThemeMode.AUTO -> {
             val c = Calendar.getInstance()
             val m = c.get(Calendar.HOUR_OF_DAY) * 60 + c.get(Calendar.MINUTE)
-            m < DAY_START || m >= NIGHT_START
+            m < dayStart || m >= nightStart
         }
     }
 
-    fun isNight(ctx: Context) = isNight(Prefs(ctx).themeMode)
+    fun isNight(ctx: Context): Boolean {
+        val p = Prefs(ctx)
+        return isNight(p.themeMode, p.dayStart, p.nightStart)
+    }
 
     /** Configuración que fuerza values/ o values-night/. */
     fun overrideFor(base: Context, night: Boolean): Configuration = Configuration().apply {
