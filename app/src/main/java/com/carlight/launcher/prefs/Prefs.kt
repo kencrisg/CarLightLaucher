@@ -6,6 +6,9 @@ import com.carlight.launcher.ui.ThemeMode
 
 enum class SpeedUnit { KMH, MPH }
 
+/** Qué activa el modo noche (tema automático + brillo nocturno). */
+enum class NightTrigger { SCHEDULE, HEADLIGHTS }
+
 /** Preferencias del launcher (ajustes + dock). */
 class Prefs(ctx: Context) {
 
@@ -74,6 +77,31 @@ class Prefs(ctx: Context) {
         get() = sp.getBoolean(KEY_SKYLINE, true)
         set(v) = sp.edit().putBoolean(KEY_SKYLINE, v).apply()
 
+    // ---------- Noche y brillo ----------
+
+    var nightTrigger: NightTrigger
+        get() = runCatching { NightTrigger.valueOf(sp.getString(KEY_NIGHT_TRIGGER, null)!!) }.getOrDefault(NightTrigger.SCHEDULE)
+        set(v) = sp.edit().putString(KEY_NIGHT_TRIGGER, v.name).apply()
+
+    /** El launcher ajusta el brillo de la pantalla de día y de noche. */
+    var brightnessControl: Boolean
+        get() = sp.getBoolean(KEY_BRIGHTNESS_CTRL, true)
+        set(v) = sp.edit().putBoolean(KEY_BRIGHTNESS_CTRL, v).apply()
+
+    /** Brillo en % (5..100). */
+    var dayBrightness: Int
+        get() = sp.getInt(KEY_DAY_BRIGHT, 90)
+        set(v) = sp.edit().putInt(KEY_DAY_BRIGHT, v).apply()
+
+    var nightBrightness: Int
+        get() = sp.getInt(KEY_NIGHT_BRIGHT, 30)
+        set(v) = sp.edit().putInt(KEY_NIGHT_BRIGHT, v).apply()
+
+    /** Señal de luces aprendida ("id:campo:valor"), ver HeadlightDetector. */
+    var headlightSignal: String?
+        get() = sp.getString(KEY_HEADLIGHT, null)
+        set(v) = sp.edit().putString(KEY_HEADLIGHT, v).apply()
+
     // ---------- Unidades ----------
 
     var speedUnit: SpeedUnit
@@ -107,6 +135,11 @@ class Prefs(ctx: Context) {
     companion object {
         const val DOCK_SLOTS = 5
         private const val KEY_DOCK = "dock"
+        private const val KEY_NIGHT_TRIGGER = "night_trigger"
+        private const val KEY_BRIGHTNESS_CTRL = "brightness_ctrl"
+        private const val KEY_DAY_BRIGHT = "day_brightness"
+        private const val KEY_NIGHT_BRIGHT = "night_brightness"
+        private const val KEY_HEADLIGHT = "headlight_signal"
         private const val KEY_THEME = "theme_mode"
         private const val KEY_DAY_START = "day_start"
         private const val KEY_NIGHT_START = "night_start"

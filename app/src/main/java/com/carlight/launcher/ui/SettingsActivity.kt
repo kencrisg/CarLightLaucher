@@ -23,6 +23,9 @@ import com.carlight.launcher.R
 import com.carlight.launcher.overlay.ForegroundWatcher
 import com.carlight.launcher.prefs.Prefs
 import com.carlight.launcher.prefs.SpeedUnit
+import com.carlight.launcher.prefs.NightTrigger
+import com.carlight.launcher.night.HeadlightDetector
+import com.carlight.launcher.night.NightController
 import com.carlight.launcher.ui.glass.GlassBackground
 import com.carlight.launcher.ui.glass.GlassLevel
 import com.carlight.launcher.apps.IconStyle
@@ -37,6 +40,7 @@ class SettingsActivity : Activity() {
 
     private enum class Category(val title: Int, val icon: Int) {
         APPEARANCE(R.string.cat_appearance, R.drawable.ic_palette),
+        DISPLAY(R.string.cat_display, R.drawable.ic_brightness),
         UNITS(R.string.cat_units, R.drawable.ic_speed),
         PANEL(R.string.cat_panel, R.drawable.ic_grid),
         SYSTEM(R.string.cat_system, R.drawable.ic_info),
@@ -92,6 +96,7 @@ class SettingsActivity : Activity() {
     }
 
     private var current = Category.APPEARANCE
+    private fun current() = current
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
@@ -106,6 +111,7 @@ class SettingsActivity : Activity() {
         content.removeAllViews()
         when (cat) {
             Category.APPEARANCE -> appearance()
+            Category.DISPLAY -> display()
             Category.UNITS -> units()
             Category.PANEL -> panel()
             Category.SYSTEM -> system()
@@ -154,17 +160,7 @@ class SettingsActivity : Activity() {
             restartIfThemeChanged() || run { show(Category.APPEARANCE); true }
         }
 
-        if (prefs.themeMode == ThemeMode.AUTO) {
-            label(R.string.set_schedule)
-            timeStepper(R.string.set_day_from, prefs.dayStart, min = 4 * 60, max = prefs.nightStart - 60) {
-                prefs.dayStart = it
-                restartIfThemeChanged()
-            }
-            timeStepper(R.string.set_night_from, prefs.nightStart, min = prefs.dayStart + 60, max = 22 * 60) {
-                prefs.nightStart = it
-                restartIfThemeChanged()
-            }
-        }
+        if (prefs.themeMode == ThemeMode.AUTO) hint(R.string.set_theme_auto_hint)
 
         label(R.string.set_background)
         backgroundTiles()
@@ -190,6 +186,139 @@ class SettingsActivity : Activity() {
             recreate()
         }
         hint(R.string.set_effects_hint)
+    }
+
+    private var offSnapshot: Map<Int, IntArray>? = null
+
+    private fun display() {
+        header(R.string.cat_display)
+
+        label(R.string.set_night_trigger)
+        segmented(listOf(R.string.set_trigger_schedule, R.string.set_trigger_lights), prefs.nightTrigger.ordinal) {
+            prefs.nightTrigger = NightTrigger.entries[it]
+            NightController.evaluate(force = true)
+            restartIfThemeChanged() || run { show(Category.DISPLAY); true }
+        }
+
+        if (prefs.nightTrigger == NightTrigger.SCHEDULE) {
+            timeStepper(R.string.set_day_from, prefs.dayStart, min = 4 * 60, max = prefs.nightStart - 60) {
+                prefs.dayStart = it
+                NightController.evaluate()
+                restartIfThemeChanged()
+            }
+            timeStepper(R.string.set_night_from, prefs.nightStart, min = prefs.dayStart + 60, max = 22 * 60) {
+                prefs.nightStart = it
+                NightController.evaluate()
+                restartIfThemeChanged()
+            }
+        } else {
+            lightsSection()
+        }
+
+        label(R.string.set_brightness)
+        segmented(listOf(R.string.set_brightness_auto, R.string.set_brightness_off), if (prefs.brightnessControl) 0 else 1) {
+            prefs.brightnessControl = it == 0
+            NightController.applyBrightness(this)
+            show(Category.DISPLAY)
+        }
+        if (prefs.brightnessControl) {
+            if (!Settings.System.canWrite(this)) {
+                status(R.string.perm_brightness, false)
+                actionButton(R.string.set_brightness_grant) {
+                    runCatching {
+                        startActivity(android.content.Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS,
+                            android.net.Uri.parse("package:$packageName")))
+                    }
+                }
+            }
+            stepper(R.string.set_brightness_day, prefs.dayBrightness, 20, 100, 10, { "$it %" }) {
+                prefs.dayBrightness = it
+                if (!NightController.isNightNow(this)) NightController.applyBrightness(this, false)
+            }
+            stepper(R.string.set_brightness_night, prefs.nightBrightness, 5, 80, 5, { "$it %" }) {
+                prefs.nightBrightness = it
+                if (NightController.isNightNow(this)) NightController.applyBrightness(this, true)
+            }
+            hint(R.string.set_brightness_hint)
+        }
+    }
+
+    /** Estado de las luces y asistente para aprender la señal del auto. */
+    private fun lightsSection() {
+        val learned = prefs.headlightSignal != null
+        val on = HeadlightDetector.lightsOn
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            background = getDrawable(R.drawable.bg_segment)
+            setPadding(px(18), 0, px(18), 0)
+        }
+        row.addView(TextView(this).apply {
+            setText(R.string.lights_state)
+            textSize = 16f
+            setTextColor(getColor(R.color.text_primary))
+        }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        row.addView(TextView(this).apply {
+            setText(when {
+                !HeadlightDetector.available -> R.string.lights_unavailable
+                !learned -> R.string.lights_not_learned
+                on == true -> R.string.lights_on
+                on == false -> R.string.lights_off
+                else -> R.string.lights_waiting
+            })
+            textSize = 15f
+            setTextColor(getColor(R.color.text_primary))
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+        })
+        content.addView(row, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, px(56)).apply { bottomMargin = px(8) })
+
+        if (!learned || offSnapshot != null) {
+            hint(R.string.lights_learn_hint)
+            if (offSnapshot == null) {
+                actionButton(R.string.lights_step1) {
+                    offSnapshot = HeadlightDetector.snapshot()
+                    show(Category.DISPLAY)
+                }
+            } else {
+                actionButton(R.string.lights_step2) {
+                    val l = HeadlightDetector.learn(offSnapshot!!, HeadlightDetector.snapshot())
+                    offSnapshot = null
+                    if (l != null) {
+                        prefs.headlightSignal = l.encode()
+                        HeadlightDetector.setLearned(l)
+                        NightController.evaluate(force = true)
+                        Toast.makeText(this, getString(R.string.lights_learned, "0x%04X".format(l.id)), Toast.LENGTH_LONG).show()
+                    } else {
+                        Toast.makeText(this, R.string.lights_learn_failed, Toast.LENGTH_LONG).show()
+                    }
+                    show(Category.DISPLAY)
+                }
+            }
+        } else {
+            actionButton(R.string.lights_forget) {
+                prefs.headlightSignal = null
+                HeadlightDetector.setLearned(null)
+                show(Category.DISPLAY)
+            }
+        }
+        // Diagnóstico: últimos mensajes del MCU (sirve para ver la señal al encender las luces)
+        val recent = HeadlightDetector.recentLog.take(4)
+        if (recent.isNotEmpty()) hint(getString(R.string.lights_recent) + "\n" + recent.joinToString("\n"))
+    }
+
+    private val nightListener: (Boolean) -> Unit = {
+        if (restartIfThemeChanged().not() && current == Category.DISPLAY) show(Category.DISPLAY)
+    }
+
+    override fun onStart() {
+        super.onStart()
+        NightController.start(this)
+        NightController.addListener(nightListener)
+    }
+
+    override fun onStop() {
+        NightController.removeListener(nightListener)
+        super.onStop()
     }
 
     private fun units() {
@@ -245,6 +374,7 @@ class SettingsActivity : Activity() {
         status(R.string.perm_a11y, accessibilityEnabled())
         status(R.string.perm_location, granted(Manifest.permission.ACCESS_FINE_LOCATION))
         status(R.string.perm_logs, granted(Manifest.permission.READ_LOGS))
+        status(R.string.perm_brightness, Settings.System.canWrite(this))
 
         label(R.string.set_about)
         val version = runCatching { packageManager.getPackageInfo(packageName, 0).versionName }.getOrNull() ?: "?"
@@ -313,7 +443,9 @@ class SettingsActivity : Activity() {
                 setOnClickListener { if (i != selected) onSelect(i) }
             }, LinearLayout.LayoutParams(0, px(52), 1f))
         }
-        content.addView(group, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        content.addView(group, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            bottomMargin = px(10)
+        })
     }
 
     /** Muestras de color de acento (círculos de 52 dp; el elegido lleva ✓). */
@@ -461,7 +593,12 @@ class SettingsActivity : Activity() {
     }
 
     /** Fila "Etiqueta   [−]  06:30  [+]" con pasos de 30 min. */
-    private fun timeStepper(text: Int, minutes: Int, min: Int, max: Int, onChange: (Int) -> Unit) {
+    private fun timeStepper(text: Int, minutes: Int, min: Int, max: Int, onChange: (Int) -> Unit) =
+        stepper(text, minutes, min, max, 30, ::hhmm, onChange)
+
+    /** Fila "Etiqueta   [−]  valor  [+]". */
+    private fun stepper(text: Int, current: Int, min: Int, max: Int, step: Int, format: (Int) -> String, onChange: (Int) -> Unit) {
+        val minutes = current
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -475,7 +612,7 @@ class SettingsActivity : Activity() {
         }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
 
         val value = TextView(this).apply {
-            this.text = hhmm(minutes)
+            this.text = format(minutes)
             textSize = 20f
             gravity = Gravity.CENTER
             setTextColor(getColor(R.color.text_primary))
@@ -488,13 +625,13 @@ class SettingsActivity : Activity() {
                 val next = (minutes + delta).coerceIn(min, max)
                 if (next != minutes) {
                     onChange(next)
-                    show(Category.APPEARANCE)
+                    show(current())
                 }
             }
         }
-        row.addView(step(-30), LinearLayout.LayoutParams(px(52), px(52)))
+        row.addView(step(-step), LinearLayout.LayoutParams(px(52), px(52)))
         row.addView(value, LinearLayout.LayoutParams(px(96), ViewGroup.LayoutParams.WRAP_CONTENT))
-        row.addView(step(+30), LinearLayout.LayoutParams(px(52), px(52)))
+        row.addView(step(+step), LinearLayout.LayoutParams(px(52), px(52)))
         content.addView(row, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
             bottomMargin = px(8)
         })

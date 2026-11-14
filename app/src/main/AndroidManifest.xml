@@ -5,6 +5,11 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
 
+    <!-- Brillo de día/noche (se concede con: adb shell appops set com.carlight.launcher WRITE_SETTINGS allow) -->
+    <uses-permission android:name="android.permission.WRITE_SETTINGS"
+        xmlns:tools="http://schemas.android.com/tools"
+        tools:ignore="ProtectedPermissions" />
+
     <!-- Recibir los broadcasts del stack Bluetooth (título/artista AVRCP) -->
     <uses-permission android:name="android.permission.BLUETOOTH" />
 

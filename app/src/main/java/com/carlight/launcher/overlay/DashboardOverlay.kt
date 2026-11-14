@@ -53,6 +53,11 @@ class DashboardOverlay(private val app: Context) {
 
     fun restartSpeed() = dashboard?.restartSpeed()
 
+    /** Cambió día/noche (luces del auto u horario): reconstruir con el otro tema si está visible. */
+    fun onNightChanged() {
+        if (attached && ThemeController.isNight(app) != night) show()
+    }
+
     private fun rebuild() {
         val wasAttached = attached
         dashboard?.let { old ->

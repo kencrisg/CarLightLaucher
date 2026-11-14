@@ -27,8 +27,14 @@ class HomeActivity : Activity() {
         applyOverrideConfiguration(ThemeController.overrideFor(newBase, night))
     }
 
+    private val nightListener: (Boolean) -> Unit = {
+        if (dashboard != null && ThemeController.isNight(this) != night) recreate()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        com.carlight.launcher.night.NightController.start(this)
+        com.carlight.launcher.night.NightController.addListener(nightListener)
         // Fondo de ventana con el color del estilo elegido (evita el destello morado al arrancar).
         val palette = com.carlight.launcher.ui.glass.WallpaperRenderer
             .style(com.carlight.launcher.prefs.Prefs(this).background).palette(night)
@@ -79,6 +85,7 @@ class HomeActivity : Activity() {
     }
 
     override fun onDestroy() {
+        com.carlight.launcher.night.NightController.removeListener(nightListener)
         dashboard?.destroy()
         super.onDestroy()
     }

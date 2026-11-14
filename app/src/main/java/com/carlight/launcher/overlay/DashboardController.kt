@@ -31,7 +31,11 @@ object DashboardController {
     fun overlayMode(ctx: Context): Boolean =
         overlay(ctx).canShow() && MapsLauncher.installedPackage(ctx) != null
 
-    private fun overlay(ctx: Context) = overlay ?: DashboardOverlay(ctx.applicationContext).also { overlay = it }
+    private fun overlay(ctx: Context) = overlay ?: DashboardOverlay(ctx.applicationContext).also {
+        overlay = it
+        com.carlight.launcher.night.NightController.start(ctx)
+        com.carlight.launcher.night.NightController.addListener { _ -> it.onNightChanged() }
+    }
 
     /** HomeActivity visible (botón Home / arranque). */
     fun onHomeShown(ctx: Context) {

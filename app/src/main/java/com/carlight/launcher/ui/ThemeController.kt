@@ -21,9 +21,10 @@ object ThemeController {
         }
     }
 
-    fun isNight(ctx: Context): Boolean {
-        val p = Prefs(ctx)
-        return isNight(p.themeMode, p.dayStart, p.nightStart)
+    fun isNight(ctx: Context): Boolean = when (Prefs(ctx).themeMode) {
+        ThemeMode.DAY -> false
+        ThemeMode.NIGHT -> true
+        ThemeMode.AUTO -> com.carlight.launcher.night.NightController.isNightNow(ctx)
     }
 
     /** Configuración que fuerza values/ o values-night/. */

@@ -52,6 +52,7 @@
     <string name="settings_title">Ajustes</string>
     <string name="settings_done">Listo</string>
     <string name="cat_appearance">Apariencia</string>
+    <string name="cat_display">Pantalla</string>
     <string name="cat_units">Unidades</string>
     <string name="cat_panel">Panel</string>
     <string name="cat_system">Sistema</string>
@@ -91,4 +92,31 @@
     <string name="perm_missing">Falta</string>
     <string name="set_about">Acerca de</string>
     <string name="set_version">CarLight %1$s · Topway TS7</string>
+
+    <!-- Pantalla: modo noche y brillo -->
+    <string name="set_theme_auto_hint">En automático, el tema oscuro sigue el modo noche configurado en Pantalla (horario o luces del auto).</string>
+    <string name="set_night_trigger">Modo noche se activa por</string>
+    <string name="set_trigger_schedule">Horario</string>
+    <string name="set_trigger_lights">Luces del auto</string>
+    <string name="set_brightness">Brillo de la pantalla</string>
+    <string name="set_brightness_auto">Automático</string>
+    <string name="set_brightness_off">No tocar</string>
+    <string name="set_brightness_day">Brillo de día</string>
+    <string name="set_brightness_night">Brillo de noche</string>
+    <string name="set_brightness_hint">De noche la pantalla baja al brillo nocturno para no deslumbrar.</string>
+    <string name="set_brightness_grant">Dar permiso para cambiar el brillo</string>
+    <string name="perm_brightness">Cambiar el brillo</string>
+    <string name="lights_state">Luces del auto</string>
+    <string name="lights_on">Encendidas</string>
+    <string name="lights_off">Apagadas</string>
+    <string name="lights_waiting">Esperando señal…</string>
+    <string name="lights_not_learned">Sin configurar</string>
+    <string name="lights_unavailable">No disponible</string>
+    <string name="lights_learn_hint">Configúralo una sola vez con el auto encendido: 1) con las luces APAGADAS toca el primer botón; 2) enciende las luces, espera 2 segundos y toca el segundo.</string>
+    <string name="lights_step1">1 · Las luces están APAGADAS</string>
+    <string name="lights_step2">2 · Ya ENCENDÍ las luces</string>
+    <string name="lights_forget">Volver a configurar las luces</string>
+    <string name="lights_learned">Señal de luces detectada (%1$s)</string>
+    <string name="lights_learn_failed">No se detectó ningún cambio. Repite: apaga las luces y empieza de nuevo.</string>
+    <string name="lights_recent">Últimos mensajes del auto:</string>
 </resources>

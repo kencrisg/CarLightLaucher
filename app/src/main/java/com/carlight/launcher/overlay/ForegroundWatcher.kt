@@ -11,6 +11,8 @@ class ForegroundWatcher : AccessibilityService() {
 
     override fun onServiceConnected() {
         DashboardController.watcherConnected = true
+        // El servicio mantiene vivo el proceso: aquí se escuchan las luces y se ajusta el brillo.
+        com.carlight.launcher.night.NightController.start(this)
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {

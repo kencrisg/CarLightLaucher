@@ -33,6 +33,8 @@ adb -s 192.168.110.217:5555 shell appops set com.carlight.launcher SYSTEM_ALERT_
 adb -s 192.168.110.217:5555 shell settings put secure enabled_accessibility_services com.carlight.launcher/com.carlight.launcher.overlay.ForegroundWatcher
 adb -s 192.168.110.217:5555 shell settings put secure accessibility_enabled 1
 adb -s 192.168.110.217:5555 shell pm grant com.carlight.launcher android.permission.ACCESS_FINE_LOCATION
+# Brillo de día/noche
+adb -s 192.168.110.217:5555 shell appops set com.carlight.launcher WRITE_SETTINGS allow
 # Frecuencia de la radio (la app de fábrica solo la escribe en el log)
 adb -s 192.168.110.217:5555 shell pm grant com.carlight.launcher android.permission.READ_LOGS
 
@@ -115,6 +117,11 @@ Se abren con el ⚙ de la tarjeta de la hora (o pulsación larga sobre ella) y c
 | Sistema | Estado de los permisos (panel flotante, accesibilidad, ubicación, logs) y versión |
 
 Cada cambio se guarda al instante en [Prefs](app/src/main/java/com/carlight/launcher/prefs/Prefs.kt). Al volver, el panel se reconstruye si cambió `appearanceSignature()` o el tema efectivo. Mientras Ajustes está abierto, la capa flotante se oculta.
+
+### 3.0.1 Modo noche y brillo (Ajustes → Pantalla)
+- **El modo noche se activa por** *Horario* (día y noche configurables) o por *Luces del auto*. Lo usan el tema automático y el brillo ([NightController](app/src/main/java/com/carlight/launcher/night/NightController.kt)).
+- **Brillo:** de día y de noche en %. Se escribe en `Settings.System.SCREEN_BRIGHTNESS`, igual que el servicio de Topway (`saveBrightness`). Requiere `WRITE_SETTINGS` (appops).
+- **Luces del auto:** el mensaje del MCU que indica los faros no está documentado. [HeadlightDetector](app/src/main/java/com/carlight/launcher/night/HeadlightDetector.kt) escucha `TWUtil` en un rango amplio de ids (0x0100–0x03FF, 0x0500–0x05FF, 0xFF00–0xFF1F) y **aprende** la señal con un asistente de dos pasos (luces apagadas → encendidas). Guarda id, campo y valor en `headlight_signal`. Si nunca llega señal, usa el horario como respaldo.
 
 ### 3.1 Mapa en vivo: cómo funciona
 
