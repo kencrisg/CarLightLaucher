@@ -26,6 +26,8 @@
             <!-- Velocímetro -->
             <FrameLayout
                 android:id="@+id/cardSpeed"
+                android:clickable="true"
+                android:focusable="true"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_weight="0.95">
@@ -35,6 +37,38 @@
                     android:layout_width="132dp"
                     android:layout_height="132dp"
                     android:layout_gravity="center" />
+
+                <!-- Computadora de viaje (toque en la tarjeta: alterna con el velocímetro) -->
+                <GridLayout
+                    android:id="@+id/tripView"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:columnCount="2"
+                    android:paddingHorizontal="@dimen/inset"
+                    android:paddingVertical="14dp"
+                    android:rowCount="2"
+                    android:visibility="gone">
+
+                    <LinearLayout style="@style/TripCell">
+                        <TextView android:id="@+id/tripDistance" style="@style/TripValue" />
+                        <TextView style="@style/TripLabel" android:text="@string/trip_distance" />
+                    </LinearLayout>
+
+                    <LinearLayout style="@style/TripCell">
+                        <TextView android:id="@+id/tripTime" style="@style/TripValue" />
+                        <TextView style="@style/TripLabel" android:text="@string/trip_time" />
+                    </LinearLayout>
+
+                    <LinearLayout style="@style/TripCell">
+                        <TextView android:id="@+id/tripAvg" style="@style/TripValue" />
+                        <TextView android:id="@+id/tripAvgLabel" style="@style/TripLabel" android:text="@string/trip_avg" />
+                    </LinearLayout>
+
+                    <LinearLayout style="@style/TripCell">
+                        <TextView android:id="@+id/tripMax" style="@style/TripValue" />
+                        <TextView android:id="@+id/tripMaxLabel" style="@style/TripLabel" android:text="@string/trip_max" />
+                    </LinearLayout>
+                </GridLayout>
             </FrameLayout>
 
             <!-- Hora (+ acceso a Ajustes) -->
@@ -85,6 +119,7 @@
                         android:format24Hour="EEE d 'de' MMMM"
                         android:textColor="@color/text_secondary"
                         android:textSize="14sp" />
+
                 </LinearLayout>
                 </LinearLayout>
 
@@ -237,6 +272,55 @@
                     android:visibility="gone" />
             </FrameLayout>
 
+            <!-- Próxima maniobra (notificación de Organic Maps) -->
+            <LinearLayout
+                android:id="@+id/mapManeuver"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top|start"
+                android:layout_margin="10dp"
+                android:background="@drawable/bg_maneuver"
+                android:gravity="center_vertical"
+                android:maxWidth="360dp"
+                android:minHeight="64dp"
+                android:orientation="horizontal"
+                android:paddingStart="10dp"
+                android:paddingEnd="18dp"
+                android:visibility="gone">
+
+                <ImageView
+                    android:id="@+id/maneuverArrow"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/glyph_map" />
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/maneuverDistance"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="sans-serif-medium"
+                        android:textColor="#FFFFFFFF"
+                        android:textSize="26sp" />
+
+                    <TextView
+                        android:id="@+id/maneuverStreet"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:maxWidth="260dp"
+                        android:maxLines="1"
+                        android:textColor="#D9FFFFFF"
+                        android:textSize="15sp" />
+                </LinearLayout>
+            </LinearLayout>
+
             <!-- Botones flotantes sobre el mapa (estilo Android Auto) -->
             <LinearLayout
                 android:id="@+id/mapButtons"
@@ -272,7 +356,7 @@
                 android:id="@+id/cardRadio"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
-                android:layout_weight="1.15"
+                android:layout_weight="1.3"
                 android:clickable="true"
                 android:focusable="true"
                 android:orientation="vertical"
@@ -377,15 +461,61 @@
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- Apps (antes el dock): cuadrícula 3x2 -->
+            <!-- Mi auto: kilometraje + recordatorios más urgentes (toque: abre Mi auto) -->
             <LinearLayout
-                android:id="@+id/dock"
+                android:id="@+id/cardCar"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_marginTop="@dimen/gap"
                 android:layout_weight="1"
+                android:clickable="true"
+                android:focusable="true"
                 android:orientation="vertical"
-                android:padding="6dp" />
+                android:paddingHorizontal="@dimen/inset"
+                android:paddingTop="14dp"
+                android:paddingBottom="10dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <ImageView
+                        style="@style/SourceChip"
+                        android:background="@drawable/bg_circle_car"
+                        android:src="@drawable/glyph_car" />
+
+                    <TextView
+                        style="@style/SourceLabel"
+                        android:text="@string/car_title" />
+
+                    <TextView
+                        android:id="@+id/carOdometer"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="13sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/carList"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:gravity="center_vertical"
+                    android:orientation="vertical" />
+            </LinearLayout>
+
+            <!-- Apps: una fila (3 accesos + "Apps") -->
+            <LinearLayout
+                android:id="@+id/dock"
+                android:layout_width="match_parent"
+                android:layout_height="88dp"
+                android:layout_marginTop="@dimen/gap"
+                android:orientation="vertical"
+                android:paddingHorizontal="4dp"
+                android:paddingVertical="6dp" />
         </LinearLayout>
     </LinearLayout>
 

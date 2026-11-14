@@ -79,6 +79,7 @@ class DashboardOverlay(private val app: Context) {
             override fun onMapFullscreen() = DashboardController.openMapFullscreen(app)
             override fun onMapReload() = DashboardController.reloadMap(app)
             override fun onOpenSettings() = DashboardController.openSettings(app)
+            override fun onOpenCar() = DashboardController.openSettings(app, car = true)
             override fun onThemeChanged() {
                 rebuild()
                 show()

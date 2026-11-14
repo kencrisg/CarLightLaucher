@@ -34,6 +34,8 @@ object DashboardController {
     private fun overlay(ctx: Context) = overlay ?: DashboardOverlay(ctx.applicationContext).also {
         overlay = it
         com.carlight.launcher.night.NightController.start(ctx)
+        com.carlight.launcher.drive.TripComputer.start(ctx)
+        com.carlight.launcher.calls.CallOverlay.start(ctx)
         com.carlight.launcher.night.NightController.addListener { _ -> it.onNightChanged() }
     }
 
@@ -78,10 +80,32 @@ object DashboardController {
 
     fun restartSpeed() = overlay?.restartSpeed()
 
-    fun openSettings(ctx: Context) {
+    // ---------- Llamadas sobre el mapa ----------
+
+    private var inCall = false
+    private var lastReclaim = 0L
+
+    fun onCallStarted(ctx: Context) {
+        inCall = true
+        if (foregroundPkg == "com.tw.bt") reclaimMap(ctx)
+    }
+
+    fun onCallEnded() { inCall = false }
+
+    /** Durante una llamada, la app BT de fábrica se abre sola: volvemos al mapa (la tarjeta flota encima). */
+    private fun reclaimMap(ctx: Context) {
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now - lastReclaim < 1500) return
+        lastReclaim = now
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({ if (inCall) bringMapToFront(ctx) }, 400)
+    }
+
+    fun openSettings(ctx: Context, car: Boolean = false) {
         overlay?.hide()
         ctx.startActivity(
-            Intent(ctx, com.carlight.launcher.ui.SettingsActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            Intent(ctx, com.carlight.launcher.ui.SettingsActivity::class.java)
+                .putExtra(com.carlight.launcher.ui.SettingsActivity.EXTRA_CAR, car)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
         )
     }
 
@@ -89,6 +113,7 @@ object DashboardController {
     fun onWindowStateChanged(ctx: Context, pkg: String, cls: String) {
         if (!isActivity(ctx, pkg, cls)) return   // diálogos, toasts, paneles de volumen, etc.
         foregroundPkg = pkg
+        if (inCall && pkg == "com.tw.bt") { reclaimMap(ctx); return }
         val mapPkg = MapsLauncher.installedPackage(ctx)
         when {
             pkg == ctx.packageName ->

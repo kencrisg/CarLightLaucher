@@ -50,6 +50,8 @@ class Dashboard(
         fun onMapFullscreen()
         /** Abrir la pantalla de Ajustes de CarLight. */
         fun onOpenSettings() {}
+        /** Abrir "Mi auto" (mantenimiento y gasolina). */
+        fun onOpenCar() {}
         fun onMapReload()
         /** El tema efectivo (día/noche) cambió: hay que reconstruir el panel. */
         fun onThemeChanged()
@@ -65,14 +67,14 @@ class Dashboard(
     private val speed = GpsSpeedSource(ctx)
     private val bgStyle = com.carlight.launcher.ui.glass.WallpaperRenderer.style(prefs.background).palette(night)
     private val wallpaper = WallpaperHoleDrawable(ctx.resources, bgStyle.gradient)
-    private val glass = GlassBackground(ctx, night, prefs.skyline, prefs.background, prefs.glassLevel, if (prefs.effects) ::sphereAnchors else null) { wallpaper.setBitmap(it) }
+    private val glass = GlassBackground(ctx, night, prefs.skyline, prefs.background, prefs.glassLevel, null) { wallpaper.setBitmap(it) }
     private val accent = Accent.current(prefs)
     private val unit = prefs.speedUnit
     private val drawer: AppDrawer
     private val dock: DockController
 
     private val holeInWindow = Rect()
-    private val islandRects = listOf(Rect(), Rect())
+    private val islandRects = listOf(Rect(), Rect(), Rect())
     private val holeInRoot = Rect()
     private val tmp = IntArray(2)
     private var started = false
@@ -103,7 +105,7 @@ class Dashboard(
     init {
         root.background = wallpaper
         val radius = ctx.resources.getDimension(R.dimen.card_radius) / ctx.resources.displayMetrics.density
-        listOf(b.cardSpeed, b.cardClock, b.cardBt, b.cardRadio, b.dock).forEach { glass.attach(it, radius) }
+        listOf(b.cardSpeed, b.cardClock, b.cardBt, b.cardRadio, b.cardCar, b.dock).forEach { glass.attach(it, radius) }
         if (!mapEmbedded) {
             glass.attach(b.cardMap, radius)
             b.mapPlaceholder.visibility = View.VISIBLE
@@ -133,6 +135,7 @@ class Dashboard(
         b.cardClock.setOnLongClickListener { launching(); callbacks.onOpenSettings(); true }
         setupBtCard()
         setupRadioCard()
+        setupTripCard()
 
         root.viewTreeObserver.addOnGlobalLayoutListener(layoutListener)
         repo.addListener(onAppsChanged)
@@ -154,6 +157,13 @@ class Dashboard(
         radio.start(::renderRadio)
         bt.start(::renderBt)
         speed.start(::renderSpeed)
+        com.carlight.launcher.drive.TripComputer.addListener(tripListener)
+        renderTrip()
+        renderCarReminder()
+        if (mapEmbedded && prefs.showManeuver) {
+            com.carlight.launcher.nav.NavState.addListener(navListener)
+            renderManeuver(com.carlight.launcher.nav.NavState.current)
+        }
     }
 
     /** Panel oculto: detener todo (GPS incluido). */
@@ -164,6 +174,8 @@ class Dashboard(
         radio.stop()
         bt.stop()
         speed.stop()
+        com.carlight.launcher.drive.TripComputer.removeListener(tripListener)
+        com.carlight.launcher.nav.NavState.removeListener(navListener)
         b.btDisc.setPlaying(false)   // sin animaciones mientras el panel no se ve
         b.btEq.setPlaying(false)
         if (drawer.isOpen) drawer.hide()
@@ -207,7 +219,8 @@ class Dashboard(
         wallpaper.setHole(holeInRoot, ctx.resources.getDimension(R.dimen.card_radius))
 
         // Los botones flotantes del mapa siguen siendo nuestros (táctiles).
-        listOf(b.mapFullscreen, b.mapReload).forEachIndexed { i, v ->
+        listOf(b.mapFullscreen, b.mapReload, b.mapManeuver).forEachIndexed { i, v ->
+            if (v.visibility != View.VISIBLE) { islandRects[i].setEmpty(); return@forEachIndexed }
             v.getLocationInWindow(tmp)
             islandRects[i].set(tmp[0], tmp[1], tmp[0] + v.width, tmp[1] + v.height)
         }
@@ -281,6 +294,131 @@ class Dashboard(
                 }
             ),
         )
+    }
+
+    // ---------- Computadora de viaje / alerta ----------
+
+    private val tripListener: () -> Unit = { renderTrip() }
+
+    private fun setupTripCard() {
+        b.cardSpeed.setOnClickListener {
+            val showTrip = b.tripView.visibility != View.VISIBLE
+            b.tripView.visibility = if (showTrip) View.VISIBLE else View.GONE
+            b.speedGauge.visibility = if (showTrip) View.GONE else View.VISIBLE
+            renderTrip()
+        }
+        b.cardSpeed.setOnLongClickListener {
+            com.carlight.launcher.drive.TripComputer.reset()
+            Toast.makeText(ctx, R.string.trip_reset_done, Toast.LENGTH_SHORT).show()
+            true
+        }
+    }
+
+    private fun renderTrip() {
+        val tc = com.carlight.launcher.drive.TripComputer
+        b.speedGauge.alert = tc.alerting
+        if (b.tripView.visibility != View.VISIBLE) return
+        val t = tc.trip
+        val mph = unit == SpeedUnit.MPH
+        val u = if (mph) "mph" else "km/h"
+        val dist = if (mph) t.meters / 1609.34f else t.meters / 1000f
+        b.tripDistance.text = "%.1f %s".format(dist, if (mph) "mi" else "km")
+        val min = t.movingMs / 60_000
+        b.tripTime.text = if (min >= 60) "%dh %02dm".format(min / 60, min % 60) else "$min min"
+        fun conv(k: Int) = if (mph) Math.round(k * KMH_TO_MPH).toInt() else k
+        b.tripAvg.text = conv(t.avgKmh).toString()
+        b.tripMax.text = conv(t.maxKmh).toString()
+        b.tripAvgLabel.text = ctx.getString(R.string.trip_avg, u)
+        b.tripMaxLabel.text = ctx.getString(R.string.trip_max, u)
+    }
+
+    // ---------- Recordatorio de mantenimiento ----------
+
+    /** Tarjeta "Mi auto": kilometraje + los 2 recordatorios más urgentes con barra de progreso. */
+    private fun renderCarReminder() {
+        b.cardCar.setOnClickListener { launching(); callbacks.onOpenCar() }
+        val car = com.carlight.launcher.car.CarData(ctx)
+        val list = b.carList
+        list.removeAllViews()
+        val d = ctx.resources.displayMetrics.density
+        if (!car.hasOdometer) {
+            b.carOdometer.text = ""
+            list.addView(android.widget.TextView(ctx).apply {
+                setText(R.string.car_setup)
+                textSize = 14f
+                setTextColor(ctx.getColor(R.color.text_secondary))
+            })
+            return
+        }
+        val odo = car.odometerKm
+        b.carOdometer.text = "%,d km".format(odo).replace(',', '.')
+        // Fracción consumida del intervalo (km o tiempo, lo que esté más cerca)
+        fun used(i: com.carlight.launcher.car.CarData.Item): Float {
+            val byKm = i.kmLeft(odo)?.let { 1f - it.toFloat() / i.everyKm } ?: 0f
+            val period = if (i.isMonthly) 365f else i.everyMonths * 30.4f
+            val byTime = i.daysLeft()?.takeIf { period > 0f }?.let { 1f - it / period } ?: 0f
+            return maxOf(byKm, byTime).coerceIn(0f, 1f)
+        }
+        car.items().sortedByDescending { used(it) }.take(2).forEach { item ->
+            val status = item.status(odo)
+            val color = when (status) { 2 -> 0xFFEF4444.toInt(); 1 -> 0xFFF59E0B.toInt(); else -> accent.end }
+            val kmLeft = item.kmLeft(odo)
+            val days = item.daysLeft()
+            val detail = when {
+                status == 2 -> "vencido"
+                item.isMonthly && item.month == 0 -> "elegir mes"
+                kmLeft != null && (days == null || kmLeft < days * 40) -> "%,d km".format(kmLeft).replace(',', '.')
+                days != null -> "$days días"
+                else -> ""
+            }
+            val row = android.widget.LinearLayout(ctx).apply { orientation = android.widget.LinearLayout.HORIZONTAL }
+            row.addView(android.widget.TextView(ctx).apply {
+                text = item.name
+                textSize = 14f
+                maxLines = 1
+                ellipsize = android.text.TextUtils.TruncateAt.END
+                setTextColor(ctx.getColor(R.color.text_primary))
+            }, android.widget.LinearLayout.LayoutParams(0, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            row.addView(android.widget.TextView(ctx).apply {
+                text = detail
+                textSize = 13f
+                setTextColor(if (status > 0) color else ctx.getColor(R.color.text_secondary))
+                typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
+            })
+            list.addView(row, android.widget.LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = (6 * d).toInt() })
+            list.addView(android.widget.ProgressBar(ctx, null, android.R.attr.progressBarStyleHorizontal).apply {
+                max = 1000
+                progress = (used(item) * 1000).toInt()
+                progressTintList = android.content.res.ColorStateList.valueOf(color)
+                progressBackgroundTintList = android.content.res.ColorStateList.valueOf(ctx.getColor(R.color.gauge_track))
+            }, android.widget.LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, (6 * d).toInt()).apply {
+                topMargin = (4 * d).toInt()
+            })
+        }
+    }
+
+    // ---------- Próxima maniobra ----------
+
+    private val navListener: (com.carlight.launcher.nav.NavState.Maneuver?) -> Unit = { renderManeuver(it) }
+
+    private fun renderManeuver(m: com.carlight.launcher.nav.NavState.Maneuver?) {
+        if (m == null) {
+            b.mapManeuver.visibility = View.GONE
+        } else {
+            b.mapManeuver.visibility = View.VISIBLE
+            b.maneuverDistance.text = m.distance
+            b.maneuverStreet.text = m.street
+            b.maneuverStreet.visibility = if (m.street.isEmpty()) View.GONE else View.VISIBLE
+            if (m.arrow != null) {
+                b.maneuverArrow.clearColorFilter()
+                b.maneuverArrow.setImageBitmap(m.arrow)
+            } else {
+                b.maneuverArrow.setImageResource(R.drawable.glyph_map)
+                b.maneuverArrow.setColorFilter(0xFFFFFFFF.toInt())
+            }
+        }
+        root.requestLayout()   // recalcula las islas táctiles
     }
 
     // ---------- Bluetooth ----------

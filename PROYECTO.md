@@ -33,6 +33,9 @@ adb -s 192.168.110.217:5555 shell appops set com.carlight.launcher SYSTEM_ALERT_
 adb -s 192.168.110.217:5555 shell settings put secure enabled_accessibility_services com.carlight.launcher/com.carlight.launcher.overlay.ForegroundWatcher
 adb -s 192.168.110.217:5555 shell settings put secure accessibility_enabled 1
 adb -s 192.168.110.217:5555 shell pm grant com.carlight.launcher android.permission.ACCESS_FINE_LOCATION
+# Próxima maniobra (lee la notificación de Organic Maps) y nombre del contacto en llamadas
+adb -s 192.168.110.217:5555 shell cmd notification allow_listener com.carlight.launcher/com.carlight.launcher.nav.NavNotificationListener
+adb -s 192.168.110.217:5555 shell pm grant com.carlight.launcher android.permission.READ_CONTACTS
 # Brillo de día/noche
 adb -s 192.168.110.217:5555 shell appops set com.carlight.launcher WRITE_SETTINGS allow
 # Frecuencia de la radio (la app de fábrica solo la escribe en el log)
@@ -122,6 +125,18 @@ Cada cambio se guarda al instante en [Prefs](app/src/main/java/com/carlight/laun
 - **El modo noche se activa por** *Horario* (día y noche configurables) o por *Luces del auto*. Lo usan el tema automático y el brillo ([NightController](app/src/main/java/com/carlight/launcher/night/NightController.kt)).
 - **Brillo:** de día y de noche en %. Se escribe en `Settings.System.SCREEN_BRIGHTNESS`, igual que el servicio de Topway (`saveBrightness`). Requiere `WRITE_SETTINGS` (appops).
 - **Luces del auto:** el mensaje del MCU que indica los faros no está documentado. [HeadlightDetector](app/src/main/java/com/carlight/launcher/night/HeadlightDetector.kt) escucha `TWUtil` en un rango amplio de ids (0x0100–0x03FF, 0x0500–0x05FF, 0xFF00–0xFF1F) y **aprende** la señal con un asistente de dos pasos (luces apagadas → encendidas). Guarda id, campo y valor en `headlight_signal`. Si nunca llega señal, usa el horario como respaldo.
+
+### 3.0.2 Conducción (Ajustes → Conducción)
+- **Computadora de viaje** ([TripComputer](app/src/main/java/com/carlight/launcher/drive/TripComputer.kt)): distancia, tiempo en marcha, velocidad media y máxima. GPS a 1 Hz mientras vive el proceso. Viaje nuevo tras 30 min detenido o con pulsación larga en la tarjeta del velocímetro. Un toque en esa tarjeta alterna entre el velocímetro y el viaje.
+- **Alerta de velocidad:** límite configurable. Al superarlo, el arco se pone rojo y suena un aviso (opcional), con histéresis de 3 km/h.
+- **Llamadas sobre el mapa** ([CallMonitor](app/src/main/java/com/carlight/launcher/calls/CallMonitor.kt), [CallOverlay](app/src/main/java/com/carlight/launcher/calls/CallOverlay.kt)): broadcast HFP de AOSP `AG_CALL_CHANGED` (estado y número). Contestar y colgar con `btAccept`/`btHangUP` del centro de comandos. Si la app BT de fábrica toma la pantalla durante la llamada, se vuelve al mapa. ⏳ Sin probar con una llamada real.
+- **Próxima maniobra** ([NavNotificationListener](app/src/main/java/com/carlight/launcher/nav/NavNotificationListener.kt)): lee la notificación de navegación de Organic Maps (título = distancia, texto = calle, icono grande = flecha) y la muestra en un banner verde sobre el mapa. ⏳ Sin probar con una ruta real.
+
+### 3.0.3 Mi auto (mantenimiento y gasolina)
+El auto (Optra) no envía datos del motor a la radio, así que todo sale del GPS y de lo que registra el usuario ([CarData](app/src/main/java/com/carlight/launcher/car/CarData.kt)). Es la misma `SettingsActivity` en modo auto, abierta por el `activity-alias` `.car.CarActivity`, que aparece como app "Mi auto" en el cajón y se puede poner en la cuadrícula.
+- **Odómetro:** el usuario ingresa una vez el km del tablero; [TripComputer](app/src/main/java/com/carlight/launcher/drive/TripComputer.kt) suma los metros del GPS. Se corrige al registrar una carga con otro km.
+- **Mantenimiento:** aceite (5.000 km / 6 meses), filtro de aire, rotación de llantas, frenos y matrícula. Lo que llegue primero entre km y meses; intervalos editables; botón "Hecho". El más urgente aparece como aviso en la tarjeta de la hora (ámbar = se acerca, rojo = vencido) y al tocarlo abre Mi auto.
+- **Gasolina:** registro de cargas (galones, total, km, tanque lleno). Consumo real con el método de tanque lleno a tanque lleno, costo por km, gasto del mes y autonomía estimada (capacidad del tanque × km/gal − km desde la última carga llena).
 
 ### 3.1 Mapa en vivo: cómo funciona
 

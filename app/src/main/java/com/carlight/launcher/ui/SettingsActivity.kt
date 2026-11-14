@@ -38,13 +38,23 @@ import com.carlight.launcher.ui.glass.WallpaperRenderer
  */
 class SettingsActivity : Activity() {
 
-    private enum class Category(val title: Int, val icon: Int) {
+    /** [car] = pertenece a la pantalla "Mi auto" (misma Activity, abierta por el alias CarActivity). */
+    private enum class Category(val title: Int, val icon: Int, val car: Boolean = false) {
         APPEARANCE(R.string.cat_appearance, R.drawable.ic_palette),
         DISPLAY(R.string.cat_display, R.drawable.ic_brightness),
+        DRIVE(R.string.cat_drive, R.drawable.ic_drive),
         UNITS(R.string.cat_units, R.drawable.ic_speed),
         PANEL(R.string.cat_panel, R.drawable.ic_grid),
         SYSTEM(R.string.cat_system, R.drawable.ic_info),
+        MAINTENANCE(R.string.cat_maintenance, R.drawable.ic_wrench, car = true),
+        FUEL(R.string.cat_fuel, R.drawable.ic_fuel, car = true),
     }
+
+    private val carMode by lazy {
+        intent.component?.className?.endsWith(".CarActivity") == true || intent.getBooleanExtra(EXTRA_CAR, false)
+    }
+    private val categories by lazy { Category.entries.filter { it.car == carMode } }
+    private lateinit var car: com.carlight.launcher.car.CarData
 
     private lateinit var prefs: Prefs
     private lateinit var content: LinearLayout
@@ -75,7 +85,7 @@ class SettingsActivity : Activity() {
         window.setBackgroundDrawable(GradientDrawable(GradientDrawable.Orientation.TL_BR, palette.gradient))
         val wallpaper = WallpaperHoleDrawable(resources, palette.gradient)
         root.background = wallpaper
-        glass = GlassBackground(this, night, prefs.skyline, prefs.background, prefs.glassLevel, if (prefs.effects) ::sphereAnchors else null) { wallpaper.setBitmap(it) }
+        glass = GlassBackground(this, night, prefs.skyline, prefs.background, prefs.glassLevel, null) { wallpaper.setBitmap(it) }
         val radius = resources.getDimension(R.dimen.card_radius) / dp
         glass.attach(findViewById(R.id.navCard), radius)
         glass.attach(findViewById(R.id.contentCard), radius)
@@ -86,8 +96,10 @@ class SettingsActivity : Activity() {
             setOnClickListener { finish() }
         }
 
-        val start = savedInstanceState?.getInt(KEY_CATEGORY) ?: intent.getIntExtra(KEY_CATEGORY, 0)
-        show(Category.entries[start.coerceIn(0, Category.entries.size - 1)])
+        car = com.carlight.launcher.car.CarData(this)
+        if (carMode) findViewById<TextView>(R.id.settingsTitle).setText(R.string.car_title)
+        val saved = savedInstanceState?.getInt(KEY_CATEGORY, -1)?.takeIf { it >= 0 }?.let { Category.entries[it] }
+        show(saved?.takeIf { it in categories } ?: categories.first())
     }
 
     override fun onDestroy() {
@@ -110,8 +122,11 @@ class SettingsActivity : Activity() {
         renderNav()
         content.removeAllViews()
         when (cat) {
+            Category.MAINTENANCE -> maintenance()
+            Category.FUEL -> fuel()
             Category.APPEARANCE -> appearance()
             Category.DISPLAY -> display()
+            Category.DRIVE -> drive()
             Category.UNITS -> units()
             Category.PANEL -> panel()
             Category.SYSTEM -> system()
@@ -121,7 +136,7 @@ class SettingsActivity : Activity() {
     private fun renderNav() {
         navList.removeAllViews()
         val accent = Accent.current(prefs)
-        Category.entries.forEach { cat ->
+        categories.forEach { cat ->
             val selected = cat == current
             val row = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
@@ -136,12 +151,12 @@ class SettingsActivity : Activity() {
             }, LinearLayout.LayoutParams(px(24), px(24)))
             row.addView(TextView(this).apply {
                 setText(cat.title)
-                textSize = 17f
+                textSize = 16f
                 setTextColor(getColor(if (selected) R.color.text_primary else R.color.text_secondary))
                 typeface = if (selected) Typeface.create("sans-serif-medium", Typeface.NORMAL) else Typeface.DEFAULT
             }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = px(14) })
-            navList.addView(row, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, px(56)).apply {
-                bottomMargin = px(6)
+            navList.addView(row, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, px(50)).apply {
+                bottomMargin = px(4)
             })
         }
     }
@@ -321,6 +336,286 @@ class SettingsActivity : Activity() {
         super.onStop()
     }
 
+    // ---------------------------------------------------------------- Mi auto
+
+    private fun maintenance() {
+        header(R.string.cat_maintenance)
+        label(R.string.car_odometer)
+        if (!car.hasOdometer) hint(R.string.car_odometer_hint)
+        valueRow(R.string.car_odometer_now, if (car.hasOdometer) km(car.odometerKm) else "—") {
+            numberDialog(R.string.car_odometer_now, if (car.hasOdometer) car.odometerKm.toDouble() else null, decimals = false) {
+                car.setOdometer(it.toInt())
+                // Primera vez: los recordatorios cuentan desde el kilometraje ingresado.
+                if (!prefs.carItemsInit) {
+                    car.saveItems(car.items().map { item -> item.copy(lastKm = it.toInt()) })
+                    prefs.carItemsInit = true
+                }
+                show(Category.MAINTENANCE)
+            }
+        }
+        if (!car.hasOdometer) return
+
+        label(R.string.car_reminders)
+        val odo = car.odometerKm
+        car.items().forEach { item ->
+            if (item.isMonthly) {
+                val days = item.daysLeft()
+                val detail = when {
+                    item.month == 0 -> getString(R.string.car_pick_month_hint)
+                    days == null -> ""
+                    days < 0 -> getString(R.string.car_plate_overdue, monthName(item.month))
+                    else -> getString(R.string.car_plate_in, monthName(item.month), days)
+                }
+                maintenanceRow(item, detail, if (item.month == 0) 1 else item.status(odo))
+                return@forEach
+            }
+            val parts = mutableListOf<String>()
+            item.kmLeft(odo)?.let { parts += if (it > 0) getString(R.string.car_in_km, km(it)) else getString(R.string.car_overdue_km, km(-it)) }
+            item.daysLeft()?.let { parts += if (it > 0) getString(R.string.car_in_days, it) else getString(R.string.car_overdue) }
+            maintenanceRow(item, parts.joinToString(" · "), item.status(odo))
+        }
+        hint(R.string.car_reminders_hint2)
+    }
+
+    private fun fuel() {
+        header(R.string.cat_fuel)
+        if (!car.hasOdometer) {
+            hint(R.string.car_need_odometer)
+            actionButton(R.string.car_go_odometer) { show(Category.MAINTENANCE) }
+            return
+        }
+        actionButton(R.string.car_add_fill, accent = true) { fillDialog() }
+
+        label(R.string.car_stats)
+        val kpg = car.kmPerGallon()
+        valueRow(R.string.car_consumption, kpg?.let { "%.1f km/gal".format(it) } ?: getString(R.string.car_need_fills))
+        valueRow(R.string.car_range, car.rangeKm()?.let { "≈ ${km(it)}" } ?: "—")
+        valueRow(R.string.car_cost_km, car.costPerKm()?.let { "$%.3f".format(it) } ?: "—")
+        valueRow(R.string.car_month, "$%.2f".format(car.monthSpend()))
+        valueRow(R.string.car_tank, "%.1f gal".format(car.tankGallons)) {
+            numberDialog(R.string.car_tank, car.tankGallons, decimals = true) {
+                car.tankGallons = it
+                show(Category.FUEL)
+            }
+        }
+
+        val fills = car.fills()
+        if (fills.isNotEmpty()) {
+            label(R.string.car_history)
+            val df = java.text.SimpleDateFormat("d MMM", java.util.Locale.getDefault())
+            fills.takeLast(6).reversed().forEach { f ->
+                valueRow(df.format(java.util.Date(f.date)) + " · " + km(f.km),
+                    "%.2f gal · $%.2f%s".format(f.gallons, f.price, if (f.full) "" else " · " + getString(R.string.car_partial)))
+            }
+            actionButton(R.string.car_undo_fill) {
+                car.removeLastFill()
+                show(Category.FUEL)
+            }
+        }
+        hint(R.string.car_fuel_hint)
+    }
+
+    private fun km(v: Int) = "%,d km".format(v).replace(',', '.')
+
+    /** Fila "Etiqueta ......... valor" (opcionalmente tocable). */
+    private fun valueRow(text: Int, value: String, onClick: (() -> Unit)? = null) = valueRow(getString(text), value, onClick)
+
+    private fun valueRow(text: String, value: String, onClick: (() -> Unit)? = null) {
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            background = getDrawable(R.drawable.bg_segment)
+            setPadding(px(18), 0, px(18), 0)
+            onClick?.let { c -> setOnClickListener { c() } }
+        }
+        row.addView(TextView(this).apply {
+            this.text = text
+            textSize = 16f
+            setTextColor(getColor(R.color.text_primary))
+        }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        row.addView(TextView(this).apply {
+            this.text = value + if (onClick != null) "  ›" else ""
+            textSize = 17f
+            setTextColor(getColor(R.color.text_primary))
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+        })
+        content.addView(row, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, px(56)).apply { bottomMargin = px(8) })
+    }
+
+    /** Recordatorio: nombre, cuánto falta (color por estado), "Hecho"; tocar = cambiar intervalo. */
+    private fun maintenanceRow(item: com.carlight.launcher.car.CarData.Item, detail: String, status: Int) {
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            background = getDrawable(R.drawable.bg_segment)
+            setPadding(px(14), px(8), px(8), px(8))
+            setOnClickListener { if (item.isMonthly) monthDialog(item) else intervalDialog(item) }
+        }
+        row.addView(View(this).apply {
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(when (status) { 2 -> 0xFFEF4444.toInt(); 1 -> 0xFFF59E0B.toInt(); else -> 0xFF22C55E.toInt() })
+            }
+        }, LinearLayout.LayoutParams(px(12), px(12)))
+        val texts = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        texts.addView(TextView(this).apply {
+            text = item.name
+            textSize = 16f
+            setTextColor(getColor(R.color.text_primary))
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+        })
+        texts.addView(TextView(this).apply {
+            text = detail
+            textSize = 14f
+            setTextColor(getColor(R.color.text_secondary))
+        })
+        row.addView(texts, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = px(14) })
+        row.addView(TextView(this).apply {
+            setText(R.string.car_done)
+            gravity = Gravity.CENTER
+            textSize = 15f
+            setTextColor(0xFFFFFFFF.toInt())
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            background = Accent.current(prefs).pill(14 * dp)
+            setOnClickListener {
+                car.markDone(item.id)
+                Toast.makeText(this@SettingsActivity, getString(R.string.car_done_toast, item.name), Toast.LENGTH_SHORT).show()
+                show(Category.MAINTENANCE)
+            }
+        }, LinearLayout.LayoutParams(px(96), px(48)))
+        content.addView(row, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { bottomMargin = px(8) })
+    }
+
+    private fun input(hint: Int, value: Double?, decimals: Boolean) = android.widget.EditText(this).apply {
+        setHint(hint)
+        inputType = android.text.InputType.TYPE_CLASS_NUMBER or
+            (if (decimals) android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL else 0)
+        textSize = 22f
+        value?.let { setText(if (decimals) "%.2f".format(java.util.Locale.US, it) else it.toInt().toString()) }
+        setSelectAllOnFocus(true)
+    }
+
+    private fun parse(e: android.widget.EditText) = e.text.toString().replace(',', '.').toDoubleOrNull()
+
+    private fun dialogBox(vararg views: View) = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        setPadding(px(24), px(8), px(24), 0)
+        views.forEach { addView(it) }
+    }
+
+    private fun numberDialog(title: Int, initial: Double?, decimals: Boolean, onOk: (Double) -> Unit) {
+        val e = input(title, initial, decimals)
+        android.app.AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert)
+            .setTitle(title)
+            .setView(dialogBox(e))
+            .setPositiveButton(R.string.car_save) { _, _ -> parse(e)?.takeIf { it >= 0 }?.let(onOk) }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun monthName(m: Int): String =
+        java.text.DateFormatSymbols.getInstance().months[m - 1].replaceFirstChar { it.uppercase() }
+
+    /** Matriculación: elegir el mes del año en que toca. */
+    private fun monthDialog(item: com.carlight.launcher.car.CarData.Item) {
+        val names = Array(12) { monthName(it + 1) }
+        android.app.AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert)
+            .setTitle(R.string.car_pick_month)
+            .setSingleChoiceItems(names, item.month - 1) { d, which ->
+                car.setMonth(item.id, which + 1)
+                d.dismiss()
+                show(Category.MAINTENANCE)
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun intervalDialog(item: com.carlight.launcher.car.CarData.Item) {
+        val kmIn = input(R.string.car_every_km, item.everyKm.toDouble(), false)
+        val moIn = input(R.string.car_every_months, item.everyMonths.toDouble(), false)
+        android.app.AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert)
+            .setTitle(item.name)
+            .setMessage(R.string.car_interval_msg)
+            .setView(dialogBox(kmIn, moIn))
+            .setPositiveButton(R.string.car_save) { _, _ ->
+                car.updateInterval(item.id, parse(kmIn)?.toInt() ?: item.everyKm, parse(moIn)?.toInt() ?: item.everyMonths)
+                show(Category.MAINTENANCE)
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun fillDialog() {
+        val gal = input(R.string.car_fill_gallons, null, true)
+        val price = input(R.string.car_fill_price, null, true)
+        val kmIn = input(R.string.car_fill_km, car.odometerKm.toDouble(), false)
+        val full = android.widget.CheckBox(this).apply {
+            setText(R.string.car_fill_full)
+            isChecked = true
+            textSize = 17f
+        }
+        android.app.AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert)
+            .setTitle(R.string.car_add_fill)
+            .setView(dialogBox(gal, price, kmIn, full))
+            .setPositiveButton(R.string.car_save) { _, _ ->
+                val g = parse(gal) ?: return@setPositiveButton
+                val k = parse(kmIn)?.toInt() ?: car.odometerKm
+                // Si el usuario corrige el km, se ajusta también el odómetro.
+                if (k != car.odometerKm) car.setOdometer(k)
+                car.addFill(com.carlight.launcher.car.CarData.Fill(System.currentTimeMillis(), k, g, parse(price) ?: 0.0, full.isChecked))
+                show(Category.FUEL)
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun drive() {
+        header(R.string.cat_drive)
+        val mph = prefs.speedUnit == SpeedUnit.MPH
+        val u = if (mph) "mph" else "km/h"
+        fun show(k: Int) = if (k == 0) getString(R.string.set_speed_alert_off)
+            else "${if (mph) Math.round(k * 0.621371) else k.toLong()} $u"
+
+        label(R.string.set_speed_alert)
+        stepper(R.string.set_speed_limit, prefs.speedLimitKmh, 0, 160, 10, ::show) { prefs.speedLimitKmh = it }
+        if (prefs.speedLimitKmh > 0) {
+            label(R.string.set_speed_sound)
+            segmented(listOf(R.string.set_on, R.string.set_off), if (prefs.speedAlertSound) 0 else 1) {
+                prefs.speedAlertSound = it == 0
+                show(Category.DRIVE)
+            }
+        }
+        hint(R.string.set_speed_alert_hint)
+
+        label(R.string.set_trip)
+        hint(R.string.set_trip_hint)
+        actionButton(R.string.set_trip_reset) {
+            com.carlight.launcher.drive.TripComputer.reset()
+            Toast.makeText(this, R.string.trip_reset_done, Toast.LENGTH_SHORT).show()
+        }
+
+        label(R.string.set_calls)
+        segmented(listOf(R.string.set_on, R.string.set_off), if (prefs.callsOverMap) 0 else 1) {
+            prefs.callsOverMap = it == 0
+            show(Category.DRIVE)
+        }
+        hint(R.string.set_calls_hint)
+
+        label(R.string.set_maneuver)
+        segmented(listOf(R.string.set_on, R.string.set_off), if (prefs.showManeuver) 0 else 1) {
+            prefs.showManeuver = it == 0
+            show(Category.DRIVE)
+        }
+        hint(R.string.set_maneuver_hint)
+        if (prefs.showManeuver && !notificationAccess()) status(R.string.perm_notifications, false)
+    }
+
+    private fun notificationAccess(): Boolean {
+        val me = ComponentName(this, com.carlight.launcher.nav.NavNotificationListener::class.java).flattenToString()
+        return Settings.Secure.getString(contentResolver, "enabled_notification_listeners").orEmpty()
+            .split(':').any { it.equals(me, ignoreCase = true) }
+    }
+
     private fun units() {
         header(R.string.cat_units)
 
@@ -370,15 +665,36 @@ class SettingsActivity : Activity() {
     private fun system() {
         header(R.string.cat_system)
         label(R.string.set_permissions)
-        status(R.string.perm_overlay, Settings.canDrawOverlays(this))
-        status(R.string.perm_a11y, accessibilityEnabled())
-        status(R.string.perm_location, granted(Manifest.permission.ACCESS_FINE_LOCATION))
-        status(R.string.perm_logs, granted(Manifest.permission.READ_LOGS))
-        status(R.string.perm_brightness, Settings.System.canWrite(this))
+        hint(R.string.perm_tap_hint)
+        permission(R.string.perm_overlay, Settings.canDrawOverlays(this)) {
+            openSettings(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, withPackage = true)
+        }
+        permission(R.string.perm_a11y, accessibilityEnabled()) { openSettings(Settings.ACTION_ACCESSIBILITY_SETTINGS) }
+        permission(R.string.perm_location, granted(Manifest.permission.ACCESS_FINE_LOCATION)) {
+            requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), REQ_PERM)
+        }
+        permission(R.string.perm_brightness, Settings.System.canWrite(this)) {
+            openSettings(Settings.ACTION_MANAGE_WRITE_SETTINGS, withPackage = true)
+        }
+        permission(R.string.perm_notifications, notificationAccess()) {
+            openSettings("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS")
+        }
+        permission(R.string.perm_contacts, granted(Manifest.permission.READ_CONTACTS)) {
+            requestPermissions(arrayOf(Manifest.permission.READ_CONTACTS), REQ_PERM)
+        }
+        permission(R.string.perm_logs, granted(Manifest.permission.READ_LOGS)) {
+            // Android no permite concederlo desde una pantalla: solo por adb.
+            android.app.AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert)
+                .setTitle(R.string.perm_logs)
+                .setMessage(getString(R.string.perm_logs_adb, packageName))
+                .setPositiveButton(android.R.string.ok, null)
+                .show()
+        }
 
         label(R.string.set_about)
         val version = runCatching { packageManager.getPackageInfo(packageName, 0).versionName }.getOrNull() ?: "?"
         hint(getString(R.string.set_version, version))
+        credit()
     }
 
     // ---------------------------------------------------------------- componentes
@@ -614,6 +930,7 @@ class SettingsActivity : Activity() {
         val value = TextView(this).apply {
             this.text = format(minutes)
             textSize = 20f
+            maxLines = 1
             gravity = Gravity.CENTER
             setTextColor(getColor(R.color.text_primary))
             typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
@@ -630,7 +947,7 @@ class SettingsActivity : Activity() {
             }
         }
         row.addView(step(-step), LinearLayout.LayoutParams(px(52), px(52)))
-        row.addView(value, LinearLayout.LayoutParams(px(96), ViewGroup.LayoutParams.WRAP_CONTENT))
+        row.addView(value, LinearLayout.LayoutParams(px(120), ViewGroup.LayoutParams.WRAP_CONTENT))
         row.addView(step(+step), LinearLayout.LayoutParams(px(52), px(52)))
         content.addView(row, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
             bottomMargin = px(8)
@@ -664,14 +981,53 @@ class SettingsActivity : Activity() {
         })
     }
 
-    private fun actionButton(text: Int, onClick: () -> Unit) {
+    /** Fila de permiso: si falta, tocarla lleva a concederlo. */
+    private fun permission(text: Int, ok: Boolean, grant: () -> Unit) {
+        status(text, ok)
+        if (!ok) content.getChildAt(content.childCount - 1).apply {
+            isClickable = true
+            setOnClickListener { grant() }
+        }
+    }
+
+    private fun openSettings(action: String, withPackage: Boolean = false) {
+        val i = android.content.Intent(action)
+        if (withPackage) i.data = android.net.Uri.parse("package:$packageName")
+        runCatching { startActivity(i) }.onFailure {
+            Toast.makeText(this, R.string.perm_open_failed, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun credit() {
+        content.addView(TextView(this).apply {
+            text = getString(R.string.set_credit)
+            textSize = 15f
+            setTextColor(getColor(R.color.text_primary))
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+        }, wrap().apply { topMargin = px(4) })
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        if (requestCode == REQ_PERM) show(current)
+    }
+
+    private var resumedOnce = false
+
+    /** Al volver de una pantalla del sistema (permisos), refrescar los estados. */
+    override fun onResume() {
+        super.onResume()
+        if (resumedOnce) show(current)
+        resumedOnce = true
+    }
+
+    private fun actionButton(text: Int, accent: Boolean = false, onClick: () -> Unit) {
         content.addView(TextView(this).apply {
             setText(text)
             gravity = Gravity.CENTER
             textSize = 16f
-            setTextColor(getColor(R.color.text_primary))
+            setTextColor(if (accent) 0xFFFFFFFF.toInt() else getColor(R.color.text_primary))
             typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
-            background = getDrawable(R.drawable.bg_segment)
+            background = if (accent) Accent.current(prefs).pill(16 * dp) else getDrawable(R.drawable.bg_segment)
             setOnClickListener { onClick() }
         }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, px(56)))
     }
@@ -722,5 +1078,7 @@ class SettingsActivity : Activity() {
 
     companion object {
         const val KEY_CATEGORY = "category"
+        const val EXTRA_CAR = "car_mode"
+        private const val REQ_PERM = 7
     }
 }

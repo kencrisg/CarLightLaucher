@@ -10,6 +10,9 @@
         xmlns:tools="http://schemas.android.com/tools"
         tools:ignore="ProtectedPermissions" />
 
+    <!-- Nombre del contacto en las llamadas (si la agenda del teléfono está sincronizada) -->
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+
     <!-- Recibir los broadcasts del stack Bluetooth (título/artista AVRCP) -->
     <uses-permission android:name="android.permission.BLUETOOTH" />
 
@@ -54,6 +57,19 @@
             android:exported="false"
             android:label="@string/settings_title" />
 
+        <!-- "Mi auto" (mantenimiento y gasolina): misma pantalla que Ajustes, en modo auto -->
+        <activity-alias
+            android:name=".car.CarActivity"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="@string/car_title"
+            android:targetActivity=".ui.SettingsActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
         <!-- Solo detecta qué app está al frente para ocultar/mostrar el panel flotante -->
         <service
             android:name=".overlay.ForegroundWatcher"
@@ -66,6 +82,17 @@
             <meta-data
                 android:name="android.accessibilityservice"
                 android:resource="@xml/foreground_watcher" />
+        </service>
+
+        <!-- Próxima maniobra de Organic Maps (lee su notificación de navegación) -->
+        <service
+            android:name=".nav.NavNotificationListener"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
         </service>
     </application>
 </manifest>

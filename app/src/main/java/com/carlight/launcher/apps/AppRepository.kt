@@ -44,7 +44,8 @@ class AppRepository private constructor(private val ctx: Context) {
         val collator = Collator.getInstance()
         return pm.queryIntentActivities(intent, 0)
             .asSequence()
-            .filter { it.activityInfo.packageName != ctx.packageName }
+            // Del propio launcher solo se listan sus "apps" (Mi auto), no la pantalla principal.
+            .filter { it.activityInfo.packageName != ctx.packageName || !it.activityInfo.name.endsWith(".HomeActivity") }
             .map {
                 AppEntry(
                     label = it.loadLabel(pm).toString().trim(),

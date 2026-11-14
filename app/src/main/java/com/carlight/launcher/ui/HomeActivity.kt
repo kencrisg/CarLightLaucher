@@ -35,6 +35,8 @@ class HomeActivity : Activity() {
         super.onCreate(savedInstanceState)
         com.carlight.launcher.night.NightController.start(this)
         com.carlight.launcher.night.NightController.addListener(nightListener)
+        com.carlight.launcher.drive.TripComputer.start(this)
+        com.carlight.launcher.calls.CallOverlay.start(this)
         // Fondo de ventana con el color del estilo elegido (evita el destello morado al arrancar).
         val palette = com.carlight.launcher.ui.glass.WallpaperRenderer
             .style(com.carlight.launcher.prefs.Prefs(this).background).palette(night)
@@ -51,6 +53,9 @@ class HomeActivity : Activity() {
                 override fun onThemeChanged() = recreate()
                 override fun onOpenSettings() {
                     startActivity(Intent(this@HomeActivity, SettingsActivity::class.java))
+                }
+                override fun onOpenCar() {
+                    startActivity(Intent(this@HomeActivity, SettingsActivity::class.java).putExtra(SettingsActivity.EXTRA_CAR, true))
                 }
             })
             signature = com.carlight.launcher.prefs.Prefs(this).appearanceSignature()
@@ -109,6 +114,7 @@ class HomeActivity : Activity() {
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         if (requestCode == REQ_LOCATION) {
+            com.carlight.launcher.drive.TripComputer.start(this)
             dashboard?.restartSpeed()
             DashboardController.restartSpeed()
         }

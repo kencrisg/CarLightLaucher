@@ -5,7 +5,7 @@
     <dimen name="side_column">240dp</dimen>
     <dimen name="gap">10dp</dimen>
     <dimen name="card_radius">24dp</dimen>
-    <dimen name="dock_icon">46dp</dimen>
+    <dimen name="dock_icon">40dp</dimen>
     <!-- Línea de inicio común para todo el texto/iconos alineados a la izquierda -->
     <dimen name="inset">18dp</dimen>
 </resources>

@@ -28,4 +28,5 @@
     <color name="fab_bg">#E61A1D24</color>
     <color name="fab_stroke">#40FFFFFF</color>
     <color name="icon_tile">#24FFFFFF</color>
+    <color name="call_bg">#F21A1C24</color>
 </resources>

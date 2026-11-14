@@ -10,7 +10,7 @@ import com.carlight.launcher.prefs.Prefs
 import com.carlight.launcher.util.AppLauncher
 
 /**
- * Cuadrícula de apps 3x2: 5 ranuras configurables + botón fijo "Apps".
+ * Fila de apps: 3 ranuras configurables + botón fijo "Apps".
  * Toque: abre la app. Pulsación larga: elegir otra app para la ranura.
  */
 class DockController(
@@ -31,7 +31,7 @@ class DockController(
     fun render() {
         container.removeAllViews()
         row = null
-        prefs.dock().forEachIndexed { index, pkg -> addSlot(index, pkg) }
+        prefs.dock().take(VISIBLE_SLOTS).forEachIndexed { index, pkg -> addSlot(index, pkg) }
         addItem(ctx.getString(R.string.dock_apps)) { ib ->
             IconPack.bindAppsTile(ib.icon, iconPx, iconStyle, accent)
             ib.root.setOnClickListener { openDrawer() }
@@ -81,7 +81,9 @@ class DockController(
     }
 
     private companion object {
-        const val COLUMNS = 3
+        /** Una sola fila: 3 accesos configurables + "Apps". */
+        const val COLUMNS = 4
+        const val VISIBLE_SLOTS = 3
 
         /** Nombres cortos para la cuadrícula (240 dp / 3 columnas: ~9 caracteres caben). */
         private val SHORT = mapOf(
@@ -90,6 +92,7 @@ class DockController(
             "com.android.settings" to "Ajustes",
             "com.tw.media" to "Música",
             "com.tw.radio" to "Radio",
+            "com.carlight.launcher" to "Mi auto",
             "com.tw.bt" to "Bluetooth",
             "com.tw.eq" to "EQ",
             "com.dofun.carsetting" to "Vehículo",

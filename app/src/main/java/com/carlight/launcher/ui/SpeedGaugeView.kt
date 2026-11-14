@@ -25,6 +25,15 @@ class SpeedGaugeView @JvmOverloads constructor(
     /** "km/h" o "mph". */
     var unit = "km/h"
         set(v) { field = v; invalidate() }
+    /** Alerta de velocidad: arco en rojo. */
+    var alert = false
+        set(v) {
+            if (field == v) return
+            field = v
+            if (width > 0) onSizeChanged(width, height, width, height)
+            invalidate()
+        }
+
     /** 3 colores del arco (acento). null = colores del tema. */
     var colors: IntArray? = null
         set(v) { field = v; if (width > 0) onSizeChanged(width, height, width, height); invalidate() }
@@ -78,7 +87,7 @@ class SpeedGaugeView @JvmOverloads constructor(
         val left = (w - size) / 2f
         val top = (h - size) / 2f + stroke / 2
         arc.set(left, top, left + size, top + size)
-        val cs = colors ?: intArrayOf(
+        val cs = if (alert) intArrayOf(0xFFF97316.toInt(), 0xFFEF4444.toInt(), 0xFFDC2626.toInt()) else colors ?: intArrayOf(
             context.getColor(R.color.gauge_1),
             context.getColor(R.color.gauge_2),
             context.getColor(R.color.gauge_3),

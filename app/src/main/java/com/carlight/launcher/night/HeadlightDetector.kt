@@ -73,9 +73,7 @@ object HeadlightDetector {
             val cls = Class.forName("android.tw.john.TWUtil")
             val obj = cls.getConstructor().newInstance()
             val open = cls.getMethod("open", ShortArray::class.java)
-            // Rango amplio de mensajes de estado del MCU; si el driver lo rechaza, uno más acotado.
-            val r = (open.invoke(obj, candidates(wide = true)) as Int).takeIf { it == 0 }
-                ?: open.invoke(obj, candidates(wide = false)) as Int
+            val r = open.invoke(obj, ids()) as Int
             if (r != 0) {
                 Log.w(TAG, "TWUtil.open = $r")
                 return
@@ -89,17 +87,18 @@ object HeadlightDetector {
         }
     }
 
-    private fun candidates(wide: Boolean): ShortArray {
-        val ids = mutableListOf<Int>()
-        if (wide) {
-            ids += 0x0100..0x03FF
-            ids += 0x0500..0x05FF
-        } else {
-            ids += listOf(0x0106, 0x010A, 0x0112, 0x0201, 0x0203, 0x020B, 0x0301, 0x0302,
-                0x0501, 0x0505, 0x0507, 0x0508, 0x0509)
-        }
-        ids += 0xFF00..0xFF1F
-        return ShortArray(ids.size) { ids[it].toShort() }
+    /**
+     * Los mismos mensajes que escucha el servicio de Topway (com.tw.service, switch de
+     * TWService): ahí está la señal de las luces. ¡El driver admite como MÁXIMO 64 ids
+     * (buffer de 128 bytes en TWUtil::openUtil); más ids abortan el proceso!
+     */
+    private fun ids(): ShortArray {
+        val list = intArrayOf(
+            0x0106, 0x010A, 0x0112, 0x0201, 0x0203, 0x020B, 0x0301, 0x0302,
+            0x0501, 0x0505, 0x0507, 0x0508, 0x0509, 0x8201, 0x9F10, 0x9F1B, 0x9F1C,
+            0xFF00, 0xFF01, 0xFF02, 0xFF04, 0xFF05, 0xFF06, 0xFF09, 0xFF11, 0xFF12, 0xFF13,
+        )
+        return ShortArray(list.size) { list[it].toShort() }
     }
 
     private fun onMcu(id: Int, a1: Int, a2: Int) {

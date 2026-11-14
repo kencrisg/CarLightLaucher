@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Banner de maniobra: verde de navegación, como Android Auto -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <corners android:radius="18dp" />
+    <gradient android:angle="315" android:startColor="#F2047857" android:endColor="#F210B981" />
+</shape>

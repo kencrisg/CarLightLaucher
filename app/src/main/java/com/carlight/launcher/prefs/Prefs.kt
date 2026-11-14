@@ -102,6 +102,39 @@ class Prefs(ctx: Context) {
         get() = sp.getString(KEY_HEADLIGHT, null)
         set(v) = sp.edit().putString(KEY_HEADLIGHT, v).apply()
 
+    // ---------- Conducción ----------
+
+    /** Alerta de velocidad en km/h (0 = desactivada). */
+    var speedLimitKmh: Int
+        get() = sp.getInt(KEY_SPEED_LIMIT, 0)
+        set(v) = sp.edit().putInt(KEY_SPEED_LIMIT, v).apply()
+
+    var speedAlertSound: Boolean
+        get() = sp.getBoolean(KEY_SPEED_SOUND, true)
+        set(v) = sp.edit().putBoolean(KEY_SPEED_SOUND, v).apply()
+
+    /** Mostrar las llamadas en una tarjeta sobre el mapa (sin perder la navegación). */
+    var callsOverMap: Boolean
+        get() = sp.getBoolean(KEY_CALLS, true)
+        set(v) = sp.edit().putBoolean(KEY_CALLS, v).apply()
+
+    /** Mostrar la próxima maniobra de Organic Maps sobre el mapa. */
+    var showManeuver: Boolean
+        get() = sp.getBoolean(KEY_MANEUVER, true)
+        set(v) = sp.edit().putBoolean(KEY_MANEUVER, v).apply()
+
+    val tripMeters get() = sp.getFloat(KEY_TRIP_M, 0f)
+    val tripMovingMs get() = sp.getLong(KEY_TRIP_MS, 0L)
+    val tripMaxKmh get() = sp.getInt(KEY_TRIP_MAX, 0)
+
+    fun saveTrip(meters: Float, movingMs: Long, maxKmh: Int) =
+        sp.edit().putFloat(KEY_TRIP_M, meters).putLong(KEY_TRIP_MS, movingMs).putInt(KEY_TRIP_MAX, maxKmh).apply()
+
+    /** Los recordatorios ya se alinearon con el primer kilometraje ingresado. */
+    var carItemsInit: Boolean
+        get() = sp.getBoolean("car_items_init", false)
+        set(v) = sp.edit().putBoolean("car_items_init", v).apply()
+
     // ---------- Unidades ----------
 
     var speedUnit: SpeedUnit
@@ -122,7 +155,7 @@ class Prefs(ctx: Context) {
      * (El tema día/noche se compara aparte porque también depende de la hora.)
      */
     fun appearanceSignature(): String =
-        "$accent|$background|$glassLevel|$iconStyle|$effects|$skyline|$speedUnit|$gaugeMax|$clock24|${sp.getString(KEY_DOCK, "")}"
+        "$showManeuver|$accent|$background|$glassLevel|$iconStyle|$effects|$skyline|$speedUnit|$gaugeMax|$clock24|${sp.getString(KEY_DOCK, "")}"
 
     private fun defaultDock(): List<String?> = listOf(
         MapsLauncher.PACKAGES.first(),
@@ -135,6 +168,13 @@ class Prefs(ctx: Context) {
     companion object {
         const val DOCK_SLOTS = 5
         private const val KEY_DOCK = "dock"
+        private const val KEY_SPEED_LIMIT = "speed_limit"
+        private const val KEY_SPEED_SOUND = "speed_sound"
+        private const val KEY_CALLS = "calls_over_map"
+        private const val KEY_MANEUVER = "show_maneuver"
+        private const val KEY_TRIP_M = "trip_m"
+        private const val KEY_TRIP_MS = "trip_ms"
+        private const val KEY_TRIP_MAX = "trip_max"
         private const val KEY_NIGHT_TRIGGER = "night_trigger"
         private const val KEY_BRIGHTNESS_CTRL = "brightness_ctrl"
         private const val KEY_DAY_BRIGHT = "day_brightness"

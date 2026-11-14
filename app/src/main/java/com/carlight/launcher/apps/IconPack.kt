@@ -31,6 +31,7 @@ object IconPack {
         "app.organicmaps" to g(R.drawable.glyph_map, 0xFF0EA5E9, 0xFF14B8A6),
         "app.organicmaps.beta" to g(R.drawable.glyph_map, 0xFF0EA5E9, 0xFF14B8A6),
         "com.tw.radio" to g(R.drawable.glyph_radio, 0xFFF97316, 0xFFFBBF24),
+        "com.carlight.launcher" to g(R.drawable.glyph_car, 0xFF0D9488, 0xFF5EEAD4),
         "com.tw.bt" to g(R.drawable.glyph_bluetooth, 0xFF2563EB, 0xFF60A5FA),
         "com.tw.media" to g(R.drawable.glyph_music, 0xFFE11D48, 0xFFF472B6),
         "com.android.settings" to g(R.drawable.glyph_settings, 0xFF475569, 0xFF94A3B8),
