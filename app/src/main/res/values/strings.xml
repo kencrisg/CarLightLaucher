@@ -62,10 +62,16 @@
     <string name="set_schedule">Horario del modo automático</string>
     <string name="set_day_from">Día desde</string>
     <string name="set_night_from">Noche desde</string>
+    <string name="set_background">Color de fondo</string>
+    <string name="set_glass">Transparencia del vidrio</string>
     <string name="set_accent">Color de acento</string>
-    <string name="set_wallpaper">Fondo</string>
-    <string name="set_wallpaper_city">Ciudad</string>
-    <string name="set_wallpaper_plain">Solo luces</string>
+    <string name="set_wallpaper">Ciudad en el fondo</string>
+    <string name="set_wallpaper_city">Mostrar</string>
+    <string name="set_wallpaper_plain">Ocultar</string>
+    <string name="set_effects">Efectos visuales</string>
+    <string name="set_effects_full">Completos</string>
+    <string name="set_effects_min">Mínimos</string>
+    <string name="set_effects_hint">Completos: esferas 3D en el fondo, disco que gira y ecualizador animado mientras suena la música.</string>
     <string name="set_speed_unit">Velocidad</string>
     <string name="set_gauge_max">Escala del velocímetro</string>
     <string name="set_clock">Formato de hora</string>
@@ -74,6 +80,7 @@
     <string name="set_dock">Accesos de la cuadrícula</string>
     <string name="set_dock_hint">Mantén pulsado un acceso del panel para cambiarlo.</string>
     <string name="set_dock_reset">Restablecer accesos</string>
+    <string name="set_icons">Estilo de iconos</string>
     <string name="set_dock_reset_done">Accesos restablecidos</string>
     <string name="set_permissions">Permisos</string>
     <string name="perm_overlay">Panel sobre el mapa</string>

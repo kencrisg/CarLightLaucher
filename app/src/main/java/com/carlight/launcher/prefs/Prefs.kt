@@ -48,6 +48,27 @@ class Prefs(ctx: Context) {
         get() = sp.getInt(KEY_ACCENT, 0)
         set(v) = sp.edit().putInt(KEY_ACCENT, v).apply()
 
+    /** Índice en [com.carlight.launcher.ui.glass.WallpaperRenderer.STYLES] (color del fondo). */
+    var background: Int
+        get() = sp.getInt(KEY_BACKGROUND, 0)
+        set(v) = sp.edit().putInt(KEY_BACKGROUND, v).apply()
+
+    /** Transparencia del vidrio de las tarjetas (por defecto: Transparente). */
+    var glassLevel: com.carlight.launcher.ui.glass.GlassLevel
+        get() = runCatching { com.carlight.launcher.ui.glass.GlassLevel.valueOf(sp.getString(KEY_GLASS, null)!!) }
+            .getOrDefault(com.carlight.launcher.ui.glass.GlassLevel.TRANSPARENT)
+        set(v) = sp.edit().putString(KEY_GLASS, v.name).apply()
+
+    var iconStyle: com.carlight.launcher.apps.IconStyle
+        get() = runCatching { com.carlight.launcher.apps.IconStyle.valueOf(sp.getString(KEY_ICONS, null)!!) }
+            .getOrDefault(com.carlight.launcher.apps.IconStyle.COLOR)
+        set(v) = sp.edit().putString(KEY_ICONS, v.name).apply()
+
+    /** Efectos visuales completos (esferas, disco girando, ecualizador) o mínimos. */
+    var effects: Boolean
+        get() = sp.getBoolean(KEY_EFFECTS, true)
+        set(v) = sp.edit().putBoolean(KEY_EFFECTS, v).apply()
+
     /** Ciudad (skyline) en el fondo. */
     var skyline: Boolean
         get() = sp.getBoolean(KEY_SKYLINE, true)
@@ -73,7 +94,7 @@ class Prefs(ctx: Context) {
      * (El tema día/noche se compara aparte porque también depende de la hora.)
      */
     fun appearanceSignature(): String =
-        "$accent|$skyline|$speedUnit|$gaugeMax|$clock24|${sp.getString(KEY_DOCK, "")}"
+        "$accent|$background|$glassLevel|$iconStyle|$effects|$skyline|$speedUnit|$gaugeMax|$clock24|${sp.getString(KEY_DOCK, "")}"
 
     private fun defaultDock(): List<String?> = listOf(
         MapsLauncher.PACKAGES.first(),
@@ -91,6 +112,10 @@ class Prefs(ctx: Context) {
         private const val KEY_NIGHT_START = "night_start"
         private const val KEY_ACCENT = "accent"
         private const val KEY_SKYLINE = "skyline"
+        private const val KEY_BACKGROUND = "background"
+        private const val KEY_GLASS = "glass_level"
+        private const val KEY_ICONS = "icon_style"
+        private const val KEY_EFFECTS = "effects"
         private const val KEY_UNIT = "speed_unit"
         private const val KEY_GAUGE_MAX = "gauge_max"
         private const val KEY_CLOCK24 = "clock24"

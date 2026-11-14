@@ -18,14 +18,17 @@ import com.carlight.launcher.R
  * Fondo de la ventana (translúcida): dibuja el wallpaper en todas partes MENOS en el hueco
  * del mapa, por donde se ve Organic Maps corriendo detrás.
  */
-class WallpaperHoleDrawable(res: Resources) : Drawable() {
-
-    private val paint = Paint(Paint.FILTER_BITMAP_FLAG or Paint.DITHER_FLAG)
-    private val fallback = intArrayOf(
+class WallpaperHoleDrawable(
+    res: Resources,
+    /** Degradado de respaldo mientras se genera el fondo real (colores del estilo elegido). */
+    private val fallback: IntArray = intArrayOf(
         res.getColor(R.color.wp_start, null),
         res.getColor(R.color.wp_center, null),
         res.getColor(R.color.wp_end, null),
-    )
+    ),
+) : Drawable() {
+
+    private val paint = Paint(Paint.FILTER_BITMAP_FLAG or Paint.DITHER_FLAG)
     private var bitmap: Bitmap? = null
     private val holePath = Path()
     private val holeRect = RectF()

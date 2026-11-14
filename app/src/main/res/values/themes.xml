@@ -74,9 +74,9 @@
         <item name="android:layout_weight">1</item>
         <item name="android:layout_marginStart">10dp</item>
         <item name="android:textColor">@color/text_secondary</item>
-        <item name="android:textSize">13sp</item>
+        <item name="android:textSize">12sp</item>
         <item name="android:textAllCaps">true</item>
-        <item name="android:letterSpacing">0.1</item>
+        <item name="android:letterSpacing">0.12</item>
         <item name="android:fontFamily">sans-serif-medium</item>
     </style>
 
@@ -98,7 +98,7 @@
         <item name="android:ellipsize">end</item>
         <item name="android:maxLines">1</item>
         <item name="android:textColor">@color/text_secondary</item>
-        <item name="android:textSize">15sp</item>
+        <item name="android:textSize">14sp</item>
     </style>
 
     <!-- Botón flotante redondo sobre el mapa -->

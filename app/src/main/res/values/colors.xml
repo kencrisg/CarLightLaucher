@@ -30,4 +30,5 @@
     <color name="tonal_bg">#141B2440</color>
     <color name="fab_bg">#EBFFFFFF</color>
     <color name="fab_stroke">#331B2440</color>
+    <color name="icon_tile">#1F1B2440</color>
 </resources>

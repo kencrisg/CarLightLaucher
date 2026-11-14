@@ -7,7 +7,8 @@ import android.widget.BaseAdapter
 import com.carlight.launcher.R
 import com.carlight.launcher.apps.AppEntry
 import com.carlight.launcher.apps.AppRepository
-import com.carlight.launcher.apps.IconCache
+import com.carlight.launcher.apps.IconPack
+import com.carlight.launcher.prefs.Prefs
 import com.carlight.launcher.databinding.ActivityHomeBinding
 import com.carlight.launcher.databinding.ItemAppBinding
 
@@ -21,6 +22,9 @@ class AppDrawer(
     private var pickCallback: ((AppEntry) -> Unit)? = null
     private val iconPx = b.root.resources.getDimensionPixelSize(R.dimen.app_icon)
     private val adapter = Adapter()
+    private val prefs = Prefs(b.root.context)
+    private val iconStyle = prefs.iconStyle
+    private val accent = Accent.current(prefs)
 
     val isOpen: Boolean get() = b.drawer.visibility == View.VISIBLE
 
@@ -68,7 +72,7 @@ class AppDrawer(
                     .also { it.root.tag = it }
             val entry = getItem(position)
             ib.label.text = entry.label
-            IconCache.bind(ib.icon, entry.component, iconPx)
+            IconPack.bind(ib.icon, entry.pkg, entry.component, iconPx, iconStyle, accent)
             return ib.root
         }
     }

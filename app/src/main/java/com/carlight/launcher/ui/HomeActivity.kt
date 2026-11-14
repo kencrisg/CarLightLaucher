@@ -29,6 +29,12 @@ class HomeActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Fondo de ventana con el color del estilo elegido (evita el destello morado al arrancar).
+        val palette = com.carlight.launcher.ui.glass.WallpaperRenderer
+            .style(com.carlight.launcher.prefs.Prefs(this).background).palette(night)
+        window.setBackgroundDrawable(
+            android.graphics.drawable.GradientDrawable(android.graphics.drawable.GradientDrawable.Orientation.TL_BR, palette.gradient)
+        )
         if (DashboardController.overlayMode(this)) {
             // Solo el fondo: Organic Maps + el panel flotante lo cubren en un instante.
             setContentView(View(this))

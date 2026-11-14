@@ -33,9 +33,16 @@ class SpeedGaugeView @JvmOverloads constructor(
 
     private val trackPaint = arcPaint().apply { color = context.getColor(R.color.gauge_track) }
     private val progressPaint = arcPaint()
+    /** Resplandor suave: dos capas translúcidas un poco más anchas que el arco. */
+    private val glowOuter = arcPaint().apply { alpha = 28 }
+    private val glowInner = arcPaint().apply { alpha = 55 }
     private val numberPaint = textPaint(R.color.text_primary, Typeface.create("sans-serif-light", Typeface.NORMAL))
     private val unitPaint = textPaint(R.color.text_secondary, Typeface.DEFAULT)
 
+    private val tickPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = context.getColor(R.color.text_hint)
+        strokeCap = Paint.Cap.ROUND
+    }
     private val arc = RectF()
     private var shown = 0f
     private var speed: Int? = null
@@ -62,32 +69,58 @@ class SpeedGaugeView @JvmOverloads constructor(
         stroke = d * 0.085f
         trackPaint.strokeWidth = stroke
         progressPaint.strokeWidth = stroke
+        glowOuter.strokeWidth = stroke * 1.9f
+        glowInner.strokeWidth = stroke * 1.4f
+        tickPaint.strokeWidth = d * 0.012f
         numberPaint.textSize = d * 0.34f
         unitPaint.textSize = d * 0.12f
         val size = d - stroke
         val left = (w - size) / 2f
         val top = (h - size) / 2f + stroke / 2
         arc.set(left, top, left + size, top + size)
+        val cs = colors ?: intArrayOf(
+            context.getColor(R.color.gauge_1),
+            context.getColor(R.color.gauge_2),
+            context.getColor(R.color.gauge_3),
+        )
+        // El degradado arranca 20° antes del arco: la punta redondeada del inicio queda en el
+        // primer color, y el tramo fuera del arco vuelve suave al primer color (sin mancha rosa).
+        val pre = 20f / 360f
+        val end = pre + SWEEP / 360f
         val g = SweepGradient(
             arc.centerX(), arc.centerY(),
-            (colors ?: intArrayOf(
-                context.getColor(R.color.gauge_1),
-                context.getColor(R.color.gauge_2),
-                context.getColor(R.color.gauge_3),
-            )).let { intArrayOf(it[0], it[1], it[2], it[2]) },
-            floatArrayOf(0f, 0.33f, 0.67f, 1f),
+            intArrayOf(cs[0], cs[0], cs[1], cs[2], cs[2], cs[0]),
+            floatArrayOf(0f, pre, pre + (end - pre) / 2f, end, end + 0.08f, 1f),
         )
-        g.setLocalMatrix(Matrix().apply { setRotate(START - 6f, arc.centerX(), arc.centerY()) })
+        g.setLocalMatrix(Matrix().apply { setRotate(START - 20f, arc.centerX(), arc.centerY()) })
         progressPaint.shader = g
+        glowOuter.shader = g
+        glowInner.shader = g
     }
 
     override fun onDraw(canvas: Canvas) {
         canvas.drawArc(arc, START, SWEEP, false, trackPaint)
         val frac = shown / maxValue
-        if (frac > 0.003f) canvas.drawArc(arc, START, SWEEP * frac, false, progressPaint)
+        if (frac > 0.003f) {
+            canvas.drawArc(arc, START, SWEEP * frac, false, glowOuter)
+            canvas.drawArc(arc, START, SWEEP * frac, false, glowInner)
+            canvas.drawArc(arc, START, SWEEP * frac, false, progressPaint)
+        }
 
         val cx = arc.centerX()
         val cy = arc.centerY()
+
+        // Marcas de escala por dentro del arco: cada 1/12 de la escala (largas cada 1/4).
+        val rOuter = arc.width() / 2 - stroke * 0.95f
+        for (i in 0..12) {
+            val long = i % 3 == 0
+            val a = Math.toRadians((START + SWEEP * i / 12f).toDouble())
+            val rInner = rOuter - stroke * (if (long) 0.75f else 0.4f)
+            val cos = Math.cos(a).toFloat()
+            val sin = Math.sin(a).toFloat()
+            tickPaint.alpha = if (long) 200 else 110
+            canvas.drawLine(cx + cos * rInner, cy + sin * rInner, cx + cos * rOuter, cy + sin * rOuter, tickPaint)
+        }
         val number = if (speed == null) "--" else shown.roundToInt().toString()
         canvas.drawText(number, cx, cy + numberPaint.textSize * 0.25f, numberPaint)
         // Línea base por encima del borde: que no se corten los descendentes (la "p" de mph).

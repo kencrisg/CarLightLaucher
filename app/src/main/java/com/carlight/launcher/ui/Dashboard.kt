@@ -63,8 +63,9 @@ class Dashboard(
     private val radio = RadioSource.create(ctx)
     private val bt = BtSource.create(ctx)
     private val speed = GpsSpeedSource(ctx)
-    private val wallpaper = WallpaperHoleDrawable(ctx.resources)
-    private val glass = GlassBackground(ctx, night, prefs.skyline) { wallpaper.setBitmap(it) }
+    private val bgStyle = com.carlight.launcher.ui.glass.WallpaperRenderer.style(prefs.background).palette(night)
+    private val wallpaper = WallpaperHoleDrawable(ctx.resources, bgStyle.gradient)
+    private val glass = GlassBackground(ctx, night, prefs.skyline, prefs.background, prefs.glassLevel, if (prefs.effects) ::sphereAnchors else null) { wallpaper.setBitmap(it) }
     private val accent = Accent.current(prefs)
     private val unit = prefs.speedUnit
     private val drawer: AppDrawer
@@ -163,6 +164,8 @@ class Dashboard(
         radio.stop()
         bt.stop()
         speed.stop()
+        b.btDisc.setPlaying(false)   // sin animaciones mientras el panel no se ve
+        b.btEq.setPlaying(false)
         if (drawer.isOpen) drawer.hide()
     }
 
@@ -211,6 +214,27 @@ class Dashboard(
         callbacks.onHoleChanged(holeInWindow, islandRects)
     }
 
+    // ---------- Esferas decorativas (ancladas a las tarjetas) ----------
+
+    private fun sphereAnchors(): List<com.carlight.launcher.ui.glass.WallpaperRenderer.Sphere> {
+        val d = ctx.resources.displayMetrics.density
+        fun rect(v: View): android.graphics.RectF {
+            v.getLocationInWindow(tmp)
+            val rx = tmp[0]; val ry = tmp[1]
+            root.getLocationInWindow(tmp)
+            val x = (rx - tmp[0]).toFloat(); val y = (ry - tmp[1]).toFloat()
+            return android.graphics.RectF(x, y, x + v.width, y + v.height)
+        }
+        val bt = rect(b.cardBt)
+        val radio = rect(b.cardRadio)
+        return listOf(
+            // Asoma por la esquina superior derecha de la tarjeta BT (como la esfera del ejemplo)
+            com.carlight.launcher.ui.glass.WallpaperRenderer.Sphere(bt.right - 4 * d, bt.top + 4 * d, 38 * d, 0),
+            // Esquina superior izquierda de la radio
+            com.carlight.launcher.ui.glass.WallpaperRenderer.Sphere(radio.left + 4 * d, radio.top + 2 * d, 32 * d, 1),
+        )
+    }
+
     // ---------- Ajustes aplicados al panel ----------
 
     private fun applyPreferences() {
@@ -223,6 +247,17 @@ class Dashboard(
         b.speedGauge.unit = if (unit == SpeedUnit.MPH) "mph" else "km/h"
         b.speedGauge.maxValue = prefs.gaugeMax.toFloat()
         b.speedGauge.colors = accent.gauge
+
+        // Cajón de apps: velo del color del fondo elegido (no morado fijo)
+        b.drawer.setBackgroundColor((bgStyle.bgStart and 0x00FFFFFF) or 0xF2000000.toInt())
+
+        // Efectos visuales
+        b.skyBadge.night = night
+        b.btDisc.setAccent(accent.start, accent.end)
+        b.btDisc.animate = prefs.effects
+        b.btEq.setColor(accent.end)
+        b.btEq.animate = prefs.effects
+        b.radioDial.setAccent(accent.end)
 
         // Acento: botón ▶ de la música
         b.btPlay.background = android.graphics.drawable.RippleDrawable(
@@ -271,6 +306,8 @@ class Dashboard(
             else -> ctx.getString(R.string.bt_idle_subtitle)
         }
         b.btPlay.setImageResource(if (s.playing) R.drawable.ic_pause else R.drawable.ic_play)
+        b.btDisc.setPlaying(s.playing && started)
+        b.btEq.setPlaying(s.playing && started)
         b.btDemo.visibility = if (s.demo) View.VISIBLE else View.GONE
     }
 
@@ -294,6 +331,7 @@ class Dashboard(
         val freq = s.formatFrequency()
         b.radioFreq.text = freq ?: ctx.getString(R.string.radio_unknown)
         b.radioUnit.visibility = if (freq != null) View.VISIBLE else View.GONE
+        b.radioDial.setFrequency(s.frequency)
         b.radioSub.text = when {
             freq == null -> ctx.getString(R.string.radio_hint_open)
             s.preset > 0 -> ctx.getString(R.string.radio_preset_long, s.preset)

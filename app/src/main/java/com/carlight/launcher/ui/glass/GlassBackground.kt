@@ -13,6 +13,10 @@ class GlassBackground(
     private val context: Context,
     private val night: Boolean,
     private val skyline: Boolean = true,
+    private val style: Int = 0,
+    private val level: GlassLevel = GlassLevel.TRANSPARENT,
+    /** Esferas decorativas (en coordenadas de la vista raíz), calculadas tras el layout. */
+    private val spheres: (() -> List<WallpaperRenderer.Sphere>)? = null,
     private val onWallpaper: (Bitmap) -> Unit,
 ) {
 
@@ -20,10 +24,10 @@ class GlassBackground(
     private val loc = IntArray(2)
 
     fun attach(view: View, radiusDp: Float, roundBottom: Boolean = true) {
-        val d = GlassDrawable(context.resources, radiusDp * context.resources.displayMetrics.density, roundBottom)
+        val d = GlassDrawable(context.resources, radiusDp * context.resources.displayMetrics.density, roundBottom, level)
         view.background = d
         cards += view to d
-        cache?.takeIf { it.night == night && it.skyline == skyline }?.let { d.setSource(it.blur, it.scale) }
+        cache?.takeIf { it.night == night && it.skyline == skyline && it.style == style && it.spheres == (spheres != null) }?.let { d.setSource(it.sharp, it.blur, it.scale) }
     }
 
     private var released = false
@@ -42,16 +46,17 @@ class GlassBackground(
         val h = decor.height
         if (w == 0 || h == 0) return
         val c = cache
-        if (c != null && c.w == w && c.h == h && c.night == night && c.skyline == skyline) {
+        if (c != null && c.w == w && c.h == h && c.night == night && c.skyline == skyline && c.style == style && c.spheres == (spheres != null)) {
             apply(c)
             return
         }
         if (pending) return
         pending = true
+        val anchors = spheres?.invoke().orEmpty()   // en el hilo UI (lee posiciones de vistas)
         Bg.io.execute {
-            val sharp = WallpaperRenderer.render(w, h, night, skyline)
+            val sharp = WallpaperRenderer.render(w, h, night, skyline, style, anchors)
             val blur = Blur.downscaled(sharp, FACTOR, RADIUS)
-            val result = Cache(w, h, night, skyline, sharp, blur, w.toFloat() / blur.width)
+            val result = Cache(w, h, night, skyline, style, spheres != null, sharp, blur, w.toFloat() / blur.width)
             Bg.main.post {
                 pending = false
                 cache = result
@@ -66,11 +71,11 @@ class GlassBackground(
         if (applied === c) return
         applied = c
         onWallpaper(c.sharp)
-        cards.forEach { it.second.setSource(c.blur, c.scale) }
+        cards.forEach { it.second.setSource(c.sharp, c.blur, c.scale) }
     }
 
     private class Cache(
-        val w: Int, val h: Int, val night: Boolean, val skyline: Boolean,
+        val w: Int, val h: Int, val night: Boolean, val skyline: Boolean, val style: Int, val spheres: Boolean,
         val sharp: Bitmap, val blur: Bitmap, val scale: Float,
     )
 

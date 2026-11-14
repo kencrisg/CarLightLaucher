@@ -1,11 +1,10 @@
 package com.carlight.launcher.ui
 
 import android.view.LayoutInflater
-import android.widget.ImageView
 import android.widget.LinearLayout
 import com.carlight.launcher.R
 import com.carlight.launcher.apps.AppRepository
-import com.carlight.launcher.apps.IconCache
+import com.carlight.launcher.apps.IconPack
 import com.carlight.launcher.databinding.ItemDockBinding
 import com.carlight.launcher.prefs.Prefs
 import com.carlight.launcher.util.AppLauncher
@@ -26,15 +25,15 @@ class DockController(
     private val inflater = LayoutInflater.from(ctx)
     private val iconPx = ctx.resources.getDimensionPixelSize(R.dimen.dock_icon)
     private var row: LinearLayout? = null
+    private val iconStyle = prefs.iconStyle
+    private val accent = Accent.current(prefs)
 
     fun render() {
         container.removeAllViews()
         row = null
         prefs.dock().forEachIndexed { index, pkg -> addSlot(index, pkg) }
         addItem(ctx.getString(R.string.dock_apps)) { ib ->
-            ib.icon.setBackgroundResource(R.drawable.bg_tile_apps)
-            ib.icon.scaleType = ImageView.ScaleType.CENTER
-            ib.icon.setImageResource(R.drawable.ic_apps)
+            IconPack.bindAppsTile(ib.icon, iconPx, iconStyle, accent)
             ib.root.setOnClickListener { openDrawer() }
         }
     }
@@ -43,7 +42,7 @@ class DockController(
         val entry = pkg?.let { repo.find(it) }
         val ib = when {
             entry != null -> addItem(shortLabel(entry.pkg, entry.label)) { ib ->
-                IconCache.bind(ib.icon, entry.component, iconPx)
+                IconPack.bind(ib.icon, entry.pkg, entry.component, iconPx, iconStyle, accent)
                 ib.root.setOnClickListener {
                     onLaunch()
                     AppLauncher.launch(ctx, entry.component)
@@ -52,8 +51,8 @@ class DockController(
             // Las apps aún no se cargan: celda vacía para no mostrar "+" un instante.
             !repo.loaded -> addItem("") { }
             else -> addItem(ctx.getString(R.string.dock_add)) { ib ->
-                ib.icon.setImageResource(R.drawable.ic_add)
-                ib.icon.alpha = 0.6f
+                IconPack.bindEmptySlot(ib.icon, iconPx)
+                ib.label.alpha = 0.7f
                 ib.root.setOnClickListener { pick(index) }
             }
         }

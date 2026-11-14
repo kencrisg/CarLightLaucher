@@ -24,7 +24,10 @@ import com.carlight.launcher.overlay.ForegroundWatcher
 import com.carlight.launcher.prefs.Prefs
 import com.carlight.launcher.prefs.SpeedUnit
 import com.carlight.launcher.ui.glass.GlassBackground
+import com.carlight.launcher.ui.glass.GlassLevel
+import com.carlight.launcher.apps.IconStyle
 import com.carlight.launcher.ui.glass.WallpaperHoleDrawable
+import com.carlight.launcher.ui.glass.WallpaperRenderer
 
 /**
  * Ajustes de CarLight. Mismo fondo y vidrio que el panel. Controles grandes (≥ 52 dp) para usar
@@ -64,9 +67,11 @@ class SettingsActivity : Activity() {
         navList = findViewById(R.id.navList)
 
         val root = findViewById<View>(R.id.root)
-        val wallpaper = WallpaperHoleDrawable(resources)
+        val palette = WallpaperRenderer.style(prefs.background).palette(night)
+        window.setBackgroundDrawable(GradientDrawable(GradientDrawable.Orientation.TL_BR, palette.gradient))
+        val wallpaper = WallpaperHoleDrawable(resources, palette.gradient)
         root.background = wallpaper
-        glass = GlassBackground(this, night, prefs.skyline) { wallpaper.setBitmap(it) }
+        glass = GlassBackground(this, night, prefs.skyline, prefs.background, prefs.glassLevel, if (prefs.effects) ::sphereAnchors else null) { wallpaper.setBitmap(it) }
         val radius = resources.getDimension(R.dimen.card_radius) / dp
         glass.attach(findViewById(R.id.navCard), radius)
         glass.attach(findViewById(R.id.contentCard), radius)
@@ -161,6 +166,15 @@ class SettingsActivity : Activity() {
             }
         }
 
+        label(R.string.set_background)
+        backgroundTiles()
+
+        label(R.string.set_glass)
+        segmented(GlassLevel.entries.map { it.label }, prefs.glassLevel.ordinal) {
+            prefs.glassLevel = GlassLevel.entries[it]
+            recreate()   // esta pantalla también usa el vidrio: se ve el cambio al instante
+        }
+
         label(R.string.set_accent)
         swatches()
 
@@ -169,6 +183,13 @@ class SettingsActivity : Activity() {
             prefs.skyline = it == 0
             recreate()
         }
+
+        label(R.string.set_effects)
+        segmented(listOf(R.string.set_effects_full, R.string.set_effects_min), if (prefs.effects) 0 else 1) {
+            prefs.effects = it == 0
+            recreate()
+        }
+        hint(R.string.set_effects_hint)
     }
 
     private fun units() {
@@ -202,6 +223,13 @@ class SettingsActivity : Activity() {
 
     private fun panel() {
         header(R.string.cat_panel)
+        label(R.string.set_icons)
+        segmented(IconStyle.entries.map { it.label }, prefs.iconStyle.ordinal) {
+            prefs.iconStyle = IconStyle.entries[it]
+            show(Category.PANEL)
+        }
+        iconPreview()
+
         label(R.string.set_dock)
         hint(R.string.set_dock_hint)
         actionButton(R.string.set_dock_reset) {
@@ -329,6 +357,109 @@ class SettingsActivity : Activity() {
         content.addView(row, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
     }
 
+    /** Vista previa del estilo de iconos con las apps del auto. */
+    private fun iconPreview() {
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(0, px(14), 0, 0)
+        }
+        val accent = Accent.current(prefs)
+        val size = px(52)
+        listOf(
+            "app.organicmaps.web" to "Mapa", "com.tw.radio" to "Radio", "com.tw.bt" to "Bluetooth",
+            "com.tw.media" to "Música", "com.dofun.carsetting" to "Vehículo", "com.android.settings" to "Ajustes",
+        ).forEach { (pkg, name) ->
+            val cell = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.CENTER_HORIZONTAL
+            }
+            val iv = ImageView(this)
+            cell.addView(iv, LinearLayout.LayoutParams(size, size))
+            val launch = packageManager.getLaunchIntentForPackage(pkg)?.component
+                ?: ComponentName(pkg, "$pkg.Main")
+            com.carlight.launcher.apps.IconPack.bind(iv, pkg, launch, size, prefs.iconStyle, accent)
+            cell.addView(TextView(this).apply {
+                text = name
+                textSize = 12f
+                gravity = Gravity.CENTER
+                setTextColor(getColor(R.color.text_secondary))
+            }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = px(6) })
+            row.addView(cell, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        }
+        content.addView(row, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            bottomMargin = px(10)
+        })
+    }
+
+    /**
+     * Estilos de fondo: miniaturas con el degradado y las luces del estilo, en la versión
+     * (día/noche) que se está viendo ahora. El elegido lleva borde y ✓.
+     */
+    private fun backgroundTiles() {
+        val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        WallpaperRenderer.STYLES.forEachIndexed { i, style ->
+            val p = style.palette(night)
+            val selected = i == prefs.background
+            val cell = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.CENTER_HORIZONTAL
+                setOnClickListener {
+                    if (i != prefs.background) {
+                        prefs.background = i
+                        recreate()   // el fondo de esta pantalla también cambia
+                    }
+                }
+            }
+            val tile = FrameLayout(this).apply {
+                background = android.graphics.drawable.LayerDrawable(
+                    arrayOf(
+                        GradientDrawable(GradientDrawable.Orientation.TL_BR, p.gradient).apply { cornerRadius = 14 * dp },
+                        // Dos "luces" del estilo, como en el fondo real
+                        GradientDrawable().apply {
+                            gradientType = GradientDrawable.RADIAL_GRADIENT
+                            gradientRadius = 40 * dp
+                            setGradientCenter(0.25f, 0.3f)
+                            colors = intArrayOf(p.orbs[0].color, p.orbs[0].color and 0x00FFFFFF)
+                            cornerRadius = 14 * dp
+                        },
+                        GradientDrawable().apply {
+                            gradientType = GradientDrawable.RADIAL_GRADIENT
+                            gradientRadius = 44 * dp
+                            setGradientCenter(0.85f, 0.75f)
+                            colors = intArrayOf(p.orbs[1].color, p.orbs[1].color and 0x00FFFFFF)
+                            cornerRadius = 14 * dp
+                        },
+                        GradientDrawable().apply {
+                            cornerRadius = 14 * dp
+                            setColor(0)
+                            if (selected) setStroke(px(3), getColor(R.color.text_primary))
+                            else setStroke(px(1), getColor(R.color.glass_stroke))
+                        },
+                    )
+                )
+            }
+            if (selected) {
+                tile.addView(ImageView(this).apply {
+                    setImageResource(R.drawable.ic_check)
+                    setColorFilter(if (night) 0xFFFFFFFF.toInt() else getColor(R.color.text_primary))
+                }, FrameLayout.LayoutParams(px(26), px(26), Gravity.CENTER))
+            }
+            cell.addView(tile, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, px(60)))
+            cell.addView(TextView(this).apply {
+                text = style.name
+                textSize = 12f
+                gravity = Gravity.CENTER
+                setTextColor(getColor(if (selected) R.color.text_primary else R.color.text_secondary))
+            }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                topMargin = px(6)
+            })
+            row.addView(cell, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
+                marginStart = if (i == 0) 0 else px(10)
+            })
+        }
+        content.addView(row, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+    }
+
     /** Fila "Etiqueta   [−]  06:30  [+]" con pasos de 30 min. */
     private fun timeStepper(text: Int, minutes: Int, min: Int, max: Int, onChange: (Int) -> Unit) {
         val row = LinearLayout(this).apply {
@@ -406,6 +537,24 @@ class SettingsActivity : Activity() {
             background = getDrawable(R.drawable.bg_segment)
             setOnClickListener { onClick() }
         }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, px(56)))
+    }
+
+    /** Esferas en las esquinas de las tarjetas de Ajustes. */
+    private fun sphereAnchors(): List<WallpaperRenderer.Sphere> {
+        val root = findViewById<View>(R.id.root)
+        val loc = IntArray(2)
+        fun rect(v: View): android.graphics.RectF {
+            v.getLocationInWindow(loc)
+            val x = loc[0]; val y = loc[1]
+            root.getLocationInWindow(loc)
+            return android.graphics.RectF((x - loc[0]).toFloat(), (y - loc[1]).toFloat(), (x - loc[0] + v.width).toFloat(), (y - loc[1] + v.height).toFloat())
+        }
+        val nav = rect(findViewById(R.id.navCard))
+        val content = rect(findViewById(R.id.contentCard))
+        return listOf(
+            WallpaperRenderer.Sphere(nav.right - 4 * dp, nav.top + 70 * dp, 40 * dp, 0),
+            WallpaperRenderer.Sphere(content.right - 30 * dp, content.bottom - 6 * dp, 30 * dp, 1),
+        )
     }
 
     // ---------------------------------------------------------------- utilidades
