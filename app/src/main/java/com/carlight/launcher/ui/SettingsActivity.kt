@@ -601,6 +601,11 @@ class SettingsActivity : Activity() {
         }
         hint(R.string.set_calls_hint)
 
+        label(R.string.mic_title)
+        actionButton(R.string.mic_open) {
+            startActivity(android.content.Intent(this, com.carlight.launcher.tools.MicTestActivity::class.java))
+        }
+
         label(R.string.set_maneuver)
         segmented(listOf(R.string.set_on, R.string.set_off), if (prefs.showManeuver) 0 else 1) {
             prefs.showManeuver = it == 0

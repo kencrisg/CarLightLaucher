@@ -49,10 +49,15 @@ object IconPack {
 
     private val APPS_TILE = Glyph(R.drawable.glyph_apps, 0xFFFF5E62.toInt(), 0xFFFF9A3D.toInt())
 
+    /** Apps del propio launcher, por Activity. */
+    private val OWN = mapOf(
+        "com.carlight.launcher.tools.MicTestActivity" to g(R.drawable.glyph_mic, 0xFFDB2777, 0xFFF472B6),
+    )
+
     /** Icono de una app en el estilo elegido. */
     fun bind(iv: ImageView, pkg: String, component: ComponentName, sizePx: Int, style: IconStyle, accent: Accent) {
         reset(iv)
-        val glyph = MAP[pkg]
+        val glyph = OWN[component.className] ?: MAP[pkg]
         when {
             style == IconStyle.ORIGINAL -> IconCache.bind(iv, component, sizePx)
             glyph != null -> drawGlyph(iv, glyph, sizePx, style, accent)

@@ -129,7 +129,7 @@ Cada cambio se guarda al instante en [Prefs](app/src/main/java/com/carlight/laun
 ### 3.0.2 Conducción (Ajustes → Conducción)
 - **Computadora de viaje** ([TripComputer](app/src/main/java/com/carlight/launcher/drive/TripComputer.kt)): distancia, tiempo en marcha, velocidad media y máxima. GPS a 1 Hz mientras vive el proceso. Viaje nuevo tras 30 min detenido o con pulsación larga en la tarjeta del velocímetro. Un toque en esa tarjeta alterna entre el velocímetro y el viaje.
 - **Alerta de velocidad:** límite configurable. Al superarlo, el arco se pone rojo y suena un aviso (opcional), con histéresis de 3 km/h.
-- **Llamadas sobre el mapa** ([CallMonitor](app/src/main/java/com/carlight/launcher/calls/CallMonitor.kt), [CallOverlay](app/src/main/java/com/carlight/launcher/calls/CallOverlay.kt)): broadcast HFP de AOSP `AG_CALL_CHANGED` (estado y número). Contestar y colgar con `btAccept`/`btHangUP` del centro de comandos. Si la app BT de fábrica toma la pantalla durante la llamada, se vuelve al mapa. ⏳ Sin probar con una llamada real.
+- **Llamadas:** la pantalla de llamada de Topway es una ventana flotante, no una Activity. Al detectar una llamada (broadcast HFP `AG_CALL_CHANGED`, con un retardo de 0,8 s para ignorar la llamada fantasma al conectar el teléfono), se oculta el panel y se abre `com.tw.bt` a pantalla completa. Al colgar vuelve el panel. No hay tarjeta propia ([CallOverlay](app/src/main/java/com/carlight/launcher/calls/CallOverlay.kt)).
 - **Próxima maniobra** ([NavNotificationListener](app/src/main/java/com/carlight/launcher/nav/NavNotificationListener.kt)): lee la notificación de navegación de Organic Maps (título = distancia, texto = calle, icono grande = flecha) y la muestra en un banner verde sobre el mapa. ⏳ Sin probar con una ruta real.
 
 ### 3.0.3 Mi auto (mantenimiento y gasolina)
@@ -137,6 +137,13 @@ El auto (Optra) no envía datos del motor a la radio, así que todo sale del GPS
 - **Odómetro:** el usuario ingresa una vez el km del tablero; [TripComputer](app/src/main/java/com/carlight/launcher/drive/TripComputer.kt) suma los metros del GPS. Se corrige al registrar una carga con otro km.
 - **Mantenimiento:** aceite (5.000 km / 6 meses), filtro de aire, rotación de llantas, frenos y matrícula. Lo que llegue primero entre km y meses; intervalos editables; botón "Hecho". El más urgente aparece como aviso en la tarjeta de la hora (ámbar = se acerca, rojo = vencido) y al tocarlo abre Mi auto.
 - **Gasolina:** registro de cargas (galones, total, km, tanque lleno). Consumo real con el método de tanque lleno a tanque lleno, costo por km, gasto del mes y autonomía estimada (capacidad del tanque × km/gal − km desde la última carga llena).
+
+### 3.0.4 Arranque: GPS y mapa centrado
+- **Problema:** al ser launcher predeterminado, CarLight abría Organic Maps ~5 s después de encender, sin GPS. Organic Maps guardaba `LastLocationStateMode : NotFollowNoPosition` y en los arranques siguientes no buscaba posición (mapamundi). Además, aunque restaure "seguir", **no mueve la cámara** hasta que se toca "Mi posición".
+- **Solución:** [GpsReady](app/src/main/java/com/carlight/launcher/gps/GpsReady.kt) espera la primera señal GPS (máx. 2 min) antes de abrir el mapa, con el aviso "Buscando señal GPS…". Luego [MapCentering](app/src/main/java/com/carlight/launcher/gps/MapCentering.kt) lee el modo en el log de Organic Maps (`OMcore`) y pulsa su botón `my_position` mediante el servicio de accesibilidad (`canRetrieveWindowContent`, `flagRetrieveInteractiveWindows`). Número de toques para terminar en "seguir, norte arriba": NotFollowNoPosition → 2, NotFollow → 1, Follow → 2, FollowAndRotate → 1.
+- **Velocímetro y viaje:** se registran en el GPS aunque al arrancar no esté listo, y reintentan; antes se quedaban en "--".
+- Opcional: `adb shell pm grant com.carlight.launcher android.permission.WRITE_SECURE_SETTINGS` permite volver a encender la ubicación del sistema si quedara apagada.
+- Ojo al probar: `am force-stop com.carlight.launcher` desconecta el servicio de accesibilidad; hay que reactivarlo (en un arranque real no pasa).
 
 ### 3.1 Mapa en vivo: cómo funciona
 

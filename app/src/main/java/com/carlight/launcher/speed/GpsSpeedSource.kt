@@ -43,23 +43,41 @@ class GpsSpeedSource(private val ctx: Context) : LocationListener {
     fun hasPermission() =
         ctx.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
 
+    private var registered = false
+    private val providers = com.carlight.launcher.gps.GpsReady.providersReceiver { register() }
+
     @SuppressLint("MissingPermission")
     fun start(onState: (SpeedState) -> Unit) {
         listener = onState
+        runCatching { ctx.registerReceiver(providers, com.carlight.launcher.gps.GpsReady.PROVIDERS_FILTER) }
+        register()
+        Bg.main.removeCallbacks(staleCheck)
+        Bg.main.postDelayed(staleCheck, 2000)
+    }
+
+    /**
+     * Se registra aunque el GPS aún no esté listo (al arrancar la radio): así recibe la señal en
+     * cuanto llegue. Antes, si el GPS no estaba listo, el velocímetro se quedaba en "--" para siempre.
+     */
+    @SuppressLint("MissingPermission")
+    private fun register() {
+        if (listener == null) return
         if (!hasPermission()) {
             emit(null, GpsStatus.NO_PERMISSION)
             return
         }
-        if (!lm.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-            emit(null, GpsStatus.DISABLED)
-            return
-        }
-        emit(null, GpsStatus.SEARCHING)
-        lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 0f, this, Looper.getMainLooper())
-        Bg.main.postDelayed(staleCheck, 2000)
+        com.carlight.launcher.gps.GpsReady.ensureLocationOn(ctx)
+        val enabled = runCatching { lm.isProviderEnabled(LocationManager.GPS_PROVIDER) }.getOrDefault(false)
+        if (lastFixAt == 0L) emit(null, if (enabled) GpsStatus.SEARCHING else GpsStatus.DISABLED)
+        if (registered) return
+        registered = runCatching {
+            lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 0f, this, Looper.getMainLooper())
+        }.isSuccess
     }
 
     fun stop() {
+        runCatching { ctx.unregisterReceiver(providers) }
+        registered = false
         lm.removeUpdates(this)
         Bg.main.removeCallbacks(staleCheck)
         listener = null
@@ -82,7 +100,7 @@ class GpsSpeedSource(private val ctx: Context) : LocationListener {
     }
 
     override fun onProviderDisabled(provider: String) { emit(null, GpsStatus.DISABLED) }
-    override fun onProviderEnabled(provider: String) { emit(null, GpsStatus.SEARCHING) }
+    override fun onProviderEnabled(provider: String) { if (lastFixAt == 0L) emit(null, GpsStatus.SEARCHING) }
     @Deprecated("API 27")
     override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
 

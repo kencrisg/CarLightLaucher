@@ -19,6 +19,7 @@ class HomeActivity : Activity() {
 
     private var night = false
     private var dashboard: Dashboard? = null
+    private var waitingText: android.widget.TextView? = null
     private var signature = ""
 
     override fun attachBaseContext(newBase: Context) {
@@ -33,6 +34,8 @@ class HomeActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Tras el standby Topway cierra CarLight a la fuerza y Android desactiva su accesibilidad.
+        com.carlight.launcher.overlay.A11ySelfHeal.start(this)
         com.carlight.launcher.night.NightController.start(this)
         com.carlight.launcher.night.NightController.addListener(nightListener)
         com.carlight.launcher.drive.TripComputer.start(this)
@@ -44,8 +47,15 @@ class HomeActivity : Activity() {
             android.graphics.drawable.GradientDrawable(android.graphics.drawable.GradientDrawable.Orientation.TL_BR, palette.gradient)
         )
         if (DashboardController.overlayMode(this)) {
-            // Solo el fondo: Organic Maps + el panel flotante lo cubren en un instante.
-            setContentView(View(this))
+            // Solo el fondo: Organic Maps + el panel flotante lo cubren. Al encender la radio, mientras
+            // se espera el GPS, por el hueco del mapa se ve este aviso.
+            waitingText = android.widget.TextView(this).apply {
+                setText(com.carlight.launcher.R.string.gps_waiting_map)
+                textSize = 18f
+                gravity = android.view.Gravity.CENTER
+                setTextColor(getColor(com.carlight.launcher.R.color.text_secondary))
+            }
+            setContentView(waitingText)
         } else {
             val d = Dashboard(this, night, mapEmbedded = false, callbacks = object : Dashboard.Callbacks {
                 override fun onMapFullscreen() { com.carlight.launcher.nav.MapsLauncher.open(this@HomeActivity) }
@@ -72,6 +82,7 @@ class HomeActivity : Activity() {
         requestLocationIfNeeded()
         val d = dashboard
         if (d == null) {
+            waitingText?.visibility = if (DashboardController.mapOpenedOnce) View.INVISIBLE else View.VISIBLE
             DashboardController.onHomeShown(this)
         } else {
             if (ThemeController.isNight(this) != night ||

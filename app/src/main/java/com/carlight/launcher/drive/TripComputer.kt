@@ -56,10 +56,15 @@ object TripComputer : LocationListener {
         meters = p.tripMeters
         movingMs = p.tripMovingMs
         maxKmh = p.tripMaxKmh
-        runCatching {
-            a.getSystemService(LocationManager::class.java)
-                .requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 0f, this, Looper.getMainLooper())
+        val lm = a.getSystemService(LocationManager::class.java)
+        // Se registra aunque el GPS no esté listo todavía; si falla, reintenta cada 10 s.
+        fun register() {
+            val ok = runCatching {
+                lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 0f, this, Looper.getMainLooper())
+            }.isSuccess
+            if (!ok) com.carlight.launcher.util.Bg.main.postDelayed({ register() }, 10_000)
         }
+        register()
     }
 
     fun reset() {

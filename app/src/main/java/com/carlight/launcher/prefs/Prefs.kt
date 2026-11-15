@@ -118,6 +118,7 @@ class Prefs(ctx: Context) {
         get() = sp.getBoolean(KEY_CALLS, true)
         set(v) = sp.edit().putBoolean(KEY_CALLS, v).apply()
 
+
     /** Mostrar la próxima maniobra de Organic Maps sobre el mapa. */
     var showManeuver: Boolean
         get() = sp.getBoolean(KEY_MANEUVER, true)

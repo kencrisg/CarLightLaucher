@@ -40,10 +40,24 @@ object DashboardController {
     }
 
     /** HomeActivity visible (botón Home / arranque). */
+    /** El mapa ya se abrió alguna vez desde que arrancó el proceso (arranque de la radio). */
+    var mapOpenedOnce = false
+        private set
+
     fun onHomeShown(ctx: Context) {
         mapFullscreen = false
-        bringMapToFront(ctx)
-        overlay(ctx).show()
+        if (mapOpenedOnce) {
+            bringMapToFront(ctx)
+        } else {
+            // Primera vez tras encender: esperar al GPS para que Organic Maps abra en tu posición.
+            com.carlight.launcher.gps.GpsReady.whenReady(ctx) {
+                mapOpenedOnce = true
+                bringMapToFront(ctx)
+                com.carlight.launcher.gps.MapCentering.afterMapOpened()
+            }
+        }
+        // Durante una llamada los controles nativos flotan sobre el mapa: el panel no los tapa.
+        if (inCall) overlay?.hide() else overlay(ctx).show()
     }
 
     fun onLaunchingApp() {
@@ -80,24 +94,50 @@ object DashboardController {
 
     fun restartSpeed() = overlay?.restartSpeed()
 
-    // ---------- Llamadas sobre el mapa ----------
+    // ---------- Llamadas ----------
 
-    private var inCall = false
-    private var lastReclaim = 0L
+    /** App al frente actual (la usa CallOverlay para cederle la pantalla a la app nativa). */
+    val foreground: String? get() = foregroundPkg
 
-    fun onCallStarted(ctx: Context) {
-        inCall = true
-        if (foregroundPkg == "com.tw.bt") reclaimMap(ctx)
+    private val fgListeners = mutableListOf<(String) -> Unit>()
+    fun addForegroundListener(l: (String) -> Unit) { fgListeners += l }
+
+    /** Hay una llamada en curso (la pantalla nativa de Topway es una ventana flotante). */
+    @Volatile var inCall = false
+        private set
+
+    /** Durante la llamada el usuario pulsó Home: puede ver el mapa + tarjeta compacta. */
+    @Volatile var userLeftCall = false
+        private set
+
+    private const val NATIVE_BT = "com.tw.bt"
+
+    /** Llamado por CallOverlay en cada cambio de la llamada. */
+    fun onCallChanged(ctx: Context, active: Boolean) {
+        if (active && !inCall) {
+            inCall = true
+            userLeftCall = false
+            overlay?.hide()
+            // Al conectar el teléfono llega una "llamada" fantasma de <1 s: esperar a que se confirme.
+            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                if (inCall && !userLeftCall) showNativeCall(ctx)
+            }, 800)
+        } else if (!active && inCall) {
+            inCall = false
+            userLeftCall = false
+            if (foregroundPkg == ctx.packageName || foregroundPkg == MapsLauncher.installedPackage(ctx)) overlay(ctx).show()
+        }
     }
 
-    fun onCallEnded() { inCall = false }
+    /** Tarjeta compacta tocada: volver a la pantalla nativa (audio al celular, teclado...). */
+    fun returnToNativeCall(ctx: Context) {
+        userLeftCall = false
+        overlay?.hide()
+        showNativeCall(ctx)
+    }
 
-    /** Durante una llamada, la app BT de fábrica se abre sola: volvemos al mapa (la tarjeta flota encima). */
-    private fun reclaimMap(ctx: Context) {
-        val now = android.os.SystemClock.elapsedRealtime()
-        if (now - lastReclaim < 1500) return
-        lastReclaim = now
-        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({ if (inCall) bringMapToFront(ctx) }, 400)
+    private fun showNativeCall(ctx: Context) {
+        com.carlight.launcher.util.AppLauncher.launchPackage(ctx.applicationContext, NATIVE_BT)
     }
 
     fun openSettings(ctx: Context, car: Boolean = false) {
@@ -113,12 +153,12 @@ object DashboardController {
     fun onWindowStateChanged(ctx: Context, pkg: String, cls: String) {
         if (!isActivity(ctx, pkg, cls)) return   // diálogos, toasts, paneles de volumen, etc.
         foregroundPkg = pkg
-        if (inCall && pkg == "com.tw.bt") { reclaimMap(ctx); return }
+        fgListeners.toList().forEach { it(pkg) }
         val mapPkg = MapsLauncher.installedPackage(ctx)
         when {
             pkg == ctx.packageName ->
                 if (cls == HomeActivity::class.java.name) onHomeShown(ctx) else overlay?.hide()   // Ajustes
-            pkg == mapPkg -> if (mapFullscreen) overlay?.hide() else overlay(ctx).show()
+            pkg == mapPkg -> if (mapFullscreen || inCall) overlay?.hide() else overlay(ctx).show()
             else -> {
                 mapFullscreen = false
                 overlay?.hide()

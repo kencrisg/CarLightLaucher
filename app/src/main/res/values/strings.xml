@@ -137,16 +137,12 @@
     <string name="set_trip">Computadora de viaje</string>
     <string name="set_trip_hint">Toca la tarjeta del velocímetro para ver el viaje. Se reinicia sola tras 30 min detenido, o mantén pulsada la tarjeta.</string>
     <string name="set_trip_reset">Reiniciar viaje ahora</string>
-    <string name="set_calls">Llamadas sobre el mapa</string>
-    <string name="set_calls_hint">Las llamadas aparecen en una tarjeta arriba, sin tapar la navegación.</string>
+    <string name="set_calls">Pantalla de llamada</string>
+    <string name="set_calls_hint">Al recibir o hacer una llamada, el panel se oculta y se muestra la pantalla de llamada de la radio a pantalla completa. Al colgar vuelve el panel.</string>
     <string name="set_maneuver">Próxima maniobra en el mapa</string>
     <string name="set_maneuver_hint">Durante una ruta de Organic Maps muestra el siguiente giro y la distancia.</string>
     <string name="perm_notifications">Lectura de la navegación</string>
     <string name="perm_contacts">Contactos (nombre en llamadas)</string>
-    <string name="call_incoming">Llamada entrante</string>
-    <string name="call_dialing">Llamando…</string>
-    <string name="call_active">En llamada</string>
-    <string name="call_unknown">Número desconocido</string>
 
     <!-- Mi auto -->
     <string name="car_title">Mi auto</string>
@@ -197,4 +193,25 @@
     <string name="perm_open_failed">Esta radio no tiene esa pantalla de permisos. Concédelo por adb.</string>
     <string name="perm_logs_adb">Android solo permite concederlo desde una computadora:\n\nadb shell pm grant %1$s android.permission.READ_LOGS</string>
     <string name="set_credit">Desarrollado por kencrisgdev</string>
+
+    <!-- Prueba de micrófono -->
+    <string name="mic_title">Micrófono</string>
+    <string name="mic_hint">Habla con voz normal a unos 50 cm del frente de la radio y mira la barra. Esta ganancia es solo de la prueba: la de las llamadas la fija el módem de la radio.</string>
+    <string name="mic_source">Fuente</string>
+    <string name="mic_level">Nivel</string>
+    <string name="mic_gain">Ganancia</string>
+    <string name="mic_filters">Ganancia automática y reducción de ruido</string>
+    <string name="mic_record">● Grabar 5 s</string>
+    <string name="mic_play">▶ Escuchar</string>
+    <string name="mic_silent">No se capta sonido. Prueba otra fuente o habla más cerca.</string>
+    <string name="mic_low">Se capta, pero bajo. Sube la ganancia o prueba otra fuente.</string>
+    <string name="mic_ok">El micrófono capta bien.</string>
+    <string name="mic_clip">Saturado: baja la ganancia.</string>
+    <string name="mic_recording">Grabando 5 segundos… habla ahora.</string>
+    <string name="mic_recorded">Listo. Toca «Escuchar».</string>
+    <string name="mic_unavailable">No se pudo abrir esta fuente de micrófono en la radio.</string>
+    <string name="mic_no_permission">Sin permiso de micrófono.</string>
+    <string name="mic_test">Prueba del micrófono</string>
+    <string name="mic_open">Micrófono y llamadas</string>
+    <string name="gps_waiting_map">Buscando señal GPS…\nEl mapa se abrirá en tu ubicación.</string>
 </resources>
