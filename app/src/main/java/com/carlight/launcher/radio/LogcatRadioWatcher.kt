@@ -22,6 +22,10 @@ class LogcatRadioWatcher(private val ctx: Context) {
         fun onRadio(freq: Int?, preset: Int?)
     }
 
+    /** Estado del proceso de la app de radio según el log del sistema (null = desconocido). */
+    @Volatile var radioAlive: Boolean? = null
+        private set
+
     private var process: Process? = null
     private var thread: Thread? = null
 
@@ -61,7 +65,11 @@ class LogcatRadioWatcher(private val ctx: Context) {
         BufferedReader(InputStreamReader(p.inputStream)).use { r ->
             while (true) {
                 val line = r.readLine() ?: break
-                TUNE.find(line)?.let { emit(it.groupValues[1].toInt(), null) }
+                when {
+                    PROC_START.containsMatchIn(line) -> radioAlive = true
+                    PROC_DEAD.containsMatchIn(line) -> radioAlive = false
+                }
+                TUNE.find(line)?.let { radioAlive = true; emit(it.groupValues[1].toInt(), null) }
                 PRESET.find(line)?.let { emit(null, it.groupValues[1].toInt()) }
             }
         }
@@ -69,7 +77,9 @@ class LogcatRadioWatcher(private val ctx: Context) {
 
     private companion object {
         const val TAG = "RadioLog"
-        val FILTER = arrayOf("FMLIB_CORE:D", "RadioActivity:E", "*:S")
+        val FILTER = arrayOf("FMLIB_CORE:D", "RadioActivity:E", "ActivityManager:I", "*:S")
+        val PROC_START = Regex("""Start proc \d+:com\.tw\.radio/""")
+        val PROC_DEAD = Regex("""Force stopping com\.tw\.radio |Killing \d+:com\.tw\.radio/|Process com\.tw\.radio \(pid""")
         val TUNE = Regex("""FMR_tune, \[freq=(\d{3,4})]""")
         val PRESET = Regex("""\[181]-+>(\d+)""")
     }

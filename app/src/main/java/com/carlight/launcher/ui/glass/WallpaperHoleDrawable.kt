@@ -33,6 +33,15 @@ class WallpaperHoleDrawable(
     private val holePath = Path()
     private val holeRect = RectF()
     private var radius = 0f
+    private var glowColor = 0
+    private val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
+    private val glowRect = RectF()
+
+    /** Halo suave del color dado alrededor del hueco (por fuera), para separar el mapa del panel. */
+    fun setHoleGlow(color: Int) {
+        glowColor = color
+        invalidateSelf()
+    }
 
     fun setBitmap(b: Bitmap) {
         bitmap = b
@@ -64,6 +73,17 @@ class WallpaperHoleDrawable(
         else {
             if (paint.shader == null) onBoundsChange(bounds)
             canvas.drawRect(bounds, paint)
+        }
+        // Halo: anillos concéntricos que se desvanecen hacia afuera (dibujados fuera del hueco).
+        if (glowColor != 0 && !holeRect.isEmpty) {
+            // Halo discreto: 3 anillos de 1 px que se desvanecen.
+            glowPaint.strokeWidth = 1f
+            for (i in 1..3) {
+                val off = i.toFloat()
+                glowRect.set(holeRect.left - off, holeRect.top - off, holeRect.right + off, holeRect.bottom + off)
+                glowPaint.color = ((70 - i * 20) shl 24) or (glowColor and 0x00FFFFFF)
+                canvas.drawRoundRect(glowRect, radius + off, radius + off, glowPaint)
+            }
         }
         canvas.restoreToCount(save)
     }

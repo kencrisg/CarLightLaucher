@@ -145,6 +145,11 @@ El auto (Optra) no envía datos del motor a la radio, así que todo sale del GPS
 - Opcional: `adb shell pm grant com.carlight.launcher android.permission.WRITE_SECURE_SETTINGS` permite volver a encender la ubicación del sistema si quedara apagada.
 - Ojo al probar: `am force-stop com.carlight.launcher` desconecta el servicio de accesibilidad; hay que reactivarlo (en un arranque real no pasa).
 
+### 3.0.5 Standby, volumen y marcha atrás
+- **Standby:** `com.tw.service` hace force-stop de CarLight y Organic Maps (solo respeta una lista fija: Variety, sus servicios…). Android quita entonces el servicio de accesibilidad. [A11ySelfHeal](app/src/main/java/com/carlight/launcher/overlay/A11ySelfHeal.kt) vigila el ajuste y lo restaura (requiere `WRITE_SECURE_SETTINGS`); si queda "atascado", reinicia su propio componente.
+- **Volumen:** la barra de la perilla es una ventana de `com.tw.service` (tipo 2008), que queda debajo de nuestra capa (2038). Al cambiar el volumen (callback `onSystemVolume` de Topway o `VOLUME_CHANGED_ACTION`), el panel se vuelve transparente y no táctil durante 3,5 s desde el último cambio (`DashboardOverlay.peek`); se detecta la ventana de `com.tw.service` con el servicio de accesibilidad (eventos de ventana y de contenido).
+- **Marcha atrás:** `com.tw.reverse/.ReverseActivity` es una Activity (la oculta el detector de app al frente) y, como respaldo, `onReverseStatus` del centro de comandos oculta el panel mientras dura.
+
 ### 3.1 Mapa en vivo: cómo funciona
 
 Android 8.1 no permite incrustar la ventana de otra app, y **Organic Maps deja de dibujar cuando no está al frente** (lo comprobamos: los gestos llegan, pero la imagen se congela). Por eso se invierten las capas:

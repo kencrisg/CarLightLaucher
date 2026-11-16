@@ -32,13 +32,21 @@ object TwCommandClient {
         private set
     private val btListeners = mutableListOf<(Boolean) -> Unit>()
 
+    /** Volumen del sistema cambiado (perilla / volante): la barra de Topway aparece. */
+    var onVolume: (() -> Unit)? = null
+    /** Marcha atrás: true = cámara de retroceso activa. */
+    var onReverse: ((Boolean) -> Unit)? = null
+
     fun isAvailable(ctx: Context) = AppLauncher.isInstalled(ctx, PKG)
 
     fun addBtListener(l: (Boolean) -> Unit) { btListeners += l }
     fun removeBtListener(l: (Boolean) -> Unit) { btListeners -= l }
 
     private val callback = object : ITWCommandCallbackAidl.Stub() {
-        override fun onSystemVolume(v: Int) {}
+        override fun onSystemVolume(v: Int) {
+            Log.i(TAG, "volumen=$v")
+            Bg.main.post { onVolume?.invoke() }
+        }
         override fun onVolumeStatus(s: Int) {}
         override fun onBtPhoneStatus(s: Int) {}
         override fun onBtCallStatus(s: Int, a: String?, b: String?) {}
@@ -47,7 +55,10 @@ object TwCommandClient {
             btConnected = c
             Bg.main.post { btListeners.toList().forEach { it(c) } }
         }
-        override fun onReverseStatus(s: Int) {}
+        override fun onReverseStatus(s: Int) {
+            Log.i(TAG, "marcha atrás=$s")
+            Bg.main.post { onReverse?.invoke(s != 0) }
+        }
         override fun onSleepStatus(s: Int) {}
         override fun onExtendedInterface(b: Bundle?) {}
     }
@@ -60,6 +71,7 @@ object TwCommandClient {
                 runCatching {
                     s.registerTWCommandCallback(callback)
                     s.btGetConnectedStatus()
+                    s.getReverseStatus()
                 }.onFailure { Log.w(TAG, "registro de callback", it) }
             }
         }

@@ -10,6 +10,7 @@ import android.view.accessibility.AccessibilityEvent
 class ForegroundWatcher : AccessibilityService() {
 
     companion object {
+        private const val TW_SERVICE = "com.tw.service"
         @Volatile var instance: ForegroundWatcher? = null
             private set
     }
@@ -24,8 +25,14 @@ class ForegroundWatcher : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
-        if (event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
         val pkg = event.packageName?.toString() ?: return
+        // La barra de volumen de la perilla/volante es una ventana de com.tw.service (no una Activity).
+        if (pkg == TW_SERVICE) {
+            android.util.Log.i("Dashboard", "ventana de Topway (${event.eventType}): ${event.className}")
+            DashboardController.onTopwayPopup()
+            return
+        }
+        if (event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
         val cls = event.className?.toString() ?: return
         DashboardController.onWindowStateChanged(this, pkg, cls)
     }

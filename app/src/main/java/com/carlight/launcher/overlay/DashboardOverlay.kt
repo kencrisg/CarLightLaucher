@@ -53,6 +53,41 @@ class DashboardOverlay(private val app: Context) {
 
     fun restartSpeed() = dashboard?.restartSpeed()
 
+    private val unpeek = Runnable {
+        dashboard?.root?.animate()?.alpha(1f)?.setDuration(200)?.start()
+        touch?.setPassthrough(true)
+        setTouchable(true)
+    }
+
+    /**
+     * La barra de volumen de Topway queda debajo de nuestra ventana (su tipo tiene menor prioridad):
+     * el panel se vuelve transparente y no táctil unos segundos para dejarla ver.
+     */
+    fun peek(ms: Long = 3500) {
+        val root = dashboard?.root ?: return
+        if (!attached) return
+        // El panel se oculta mientras se ve la barra de volumen de Topway (no se puede achicar).
+        root.animate().cancel()
+        root.animate().alpha(PEEK_ALPHA).setDuration(150).start()
+        setTouchable(false)
+        root.removeCallbacks(unpeek)
+        root.postDelayed(unpeek, ms)
+    }
+
+    private val PEEK_ALPHA = 0f
+
+    private fun setTouchable(on: Boolean) {
+        val root = dashboard?.root ?: return
+        if (!attached) return
+        val lp = root.layoutParams as? WindowManager.LayoutParams ?: return
+        val f = WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+        val nf = if (on) lp.flags and f.inv() else lp.flags or f
+        if (nf != lp.flags) {
+            lp.flags = nf
+            runCatching { wm.updateViewLayout(root, lp) }
+        }
+    }
+
     /** Cambió día/noche (luces del auto u horario): reconstruir con el otro tema si está visible. */
     fun onNightChanged() {
         if (attached && ThemeController.isNight(app) != night) show()

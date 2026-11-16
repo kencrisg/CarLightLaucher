@@ -30,6 +30,7 @@ class TopwayRadioSource(private val ctx: Context) : RadioSource {
         emit()
         watcher.start { f, p ->
             if (f != null) {
+                lastTuneAt = SystemClock.elapsedRealtime()
                 freq = f
                 prefs.edit().putInt(KEY_FREQ, f).apply()
             }
@@ -60,9 +61,63 @@ class TopwayRadioSource(private val ctx: Context) : RadioSource {
     private var seekAt = 0L
     override fun open() { AppLauncher.launchPackage(ctx, RadioSource.TW_RADIO_PKG) }
 
+    private var lastTuneAt = 0L
+    private var waking = false
+    private var pending: ((com.tw.service.xt.aidl.ITWCommandAidl) -> Unit)? = null
+
     private fun command(block: (com.tw.service.xt.aidl.ITWCommandAidl) -> Unit) {
         TwAudioSource.request(TwAudioSource.RADIO)
-        if (!TwCommandClient.send(block)) onNeedsApp?.invoke() ?: open()
+        // Topway cierra la app de radio al entrar en standby: sin ella nadie recibe la orden.
+        if (!radioRunning()) {
+            wakeRadioApp(block)
+            return
+        }
+        if (!TwCommandClient.send(block)) {
+            onNeedsApp?.invoke() ?: open()
+            return
+        }
+        // Estado desconocido (log rotado): si en 1,2 s no sintoniza, despertarla.
+        if (watcher.radioAlive == null && watcher.hasPermission()) {
+            val sentAt = android.os.SystemClock.elapsedRealtime()
+            com.carlight.launcher.util.Bg.main.postDelayed({ if (lastTuneAt < sentAt) wakeRadioApp(block) }, 1200)
+        }
+    }
+
+    /** Según el log del sistema (inicios/cierres de com.tw.radio). Desconocido = se asume viva. */
+    private fun radioRunning(): Boolean = watcher.radioAlive != false
+
+    /**
+     * Abre la app de radio para despertarla; en cuanto su pantalla aparece, manda la orden y vuelve
+     * al mapa (sin tiempos fijos). Respaldo de 2,5 s por si no llega el aviso de pantalla.
+     */
+    private fun wakeRadioApp(block: (com.tw.service.xt.aidl.ITWCommandAidl) -> Unit) {
+        pending = block
+        if (waking) return
+        waking = true
+        android.util.Log.i("RadioLog", "app de radio cerrada: despertándola")
+        com.carlight.launcher.overlay.DashboardController.addForegroundListener(onFg)
+        AppLauncher.launchPackage(ctx, RadioSource.TW_RADIO_PKG)
+        com.carlight.launcher.util.Bg.main.postDelayed(finishWake, 2500)
+    }
+
+    private val onFg: (String) -> Unit = { pkg ->
+        if (waking && pkg == RadioSource.TW_RADIO_PKG) {
+            // La radio registra su receptor de órdenes al crearse: un respiro corto y listo.
+            com.carlight.launcher.util.Bg.main.removeCallbacks(finishWake)
+            com.carlight.launcher.util.Bg.main.postDelayed(finishWake, 350)
+        }
+    }
+
+    private val finishWake = Runnable {
+        if (!waking) return@Runnable
+        waking = false
+        com.carlight.launcher.overlay.DashboardController.removeForegroundListener(onFg)
+        pending?.let { TwCommandClient.send(it) }
+        pending = null
+        ctx.startActivity(
+            android.content.Intent(ctx, com.carlight.launcher.ui.HomeActivity::class.java)
+                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
     }
 
     private fun emit() = listener?.invoke(RadioState(freq, preset))

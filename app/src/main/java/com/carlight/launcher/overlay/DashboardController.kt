@@ -31,8 +31,32 @@ object DashboardController {
     fun overlayMode(ctx: Context): Boolean =
         overlay(ctx).canShow() && MapsLauncher.installedPackage(ctx) != null
 
+    @Volatile private var reversing = false
+
+    /** Ventana emergente de Topway (barra de volumen): dejarla ver unos segundos. */
+    fun onTopwayPopup() {
+        overlay?.peek()
+    }
+
     private fun overlay(ctx: Context) = overlay ?: DashboardOverlay(ctx.applicationContext).also {
         overlay = it
+        val app = ctx.applicationContext
+        com.carlight.launcher.topway.TwCommandClient.bind(app)
+        com.carlight.launcher.topway.TwCommandClient.onVolume = { it.peek() }
+        // Respaldo: cambio de volumen estándar de Android (si Topway no avisa por su servicio).
+        app.registerReceiver(object : android.content.BroadcastReceiver() {
+            override fun onReceive(c: Context, i: Intent) {
+                android.util.Log.i(TAG, "volumen cambiado (Android)")
+                it.peek()
+            }
+        }, android.content.IntentFilter("android.media.VOLUME_CHANGED_ACTION"))
+        com.carlight.launcher.topway.TwCommandClient.onReverse = { on ->
+            reversing = on
+            if (on) it.hide()
+            else if (!inCall && !mapFullscreen &&
+                (foregroundPkg == app.packageName || foregroundPkg == MapsLauncher.installedPackage(app))
+            ) it.show()
+        }
         com.carlight.launcher.night.NightController.start(ctx)
         com.carlight.launcher.drive.TripComputer.start(ctx)
         com.carlight.launcher.calls.CallOverlay.start(ctx)
@@ -57,7 +81,7 @@ object DashboardController {
             }
         }
         // Durante una llamada los controles nativos flotan sobre el mapa: el panel no los tapa.
-        if (inCall) overlay?.hide() else overlay(ctx).show()
+        if (inCall || reversing) overlay?.hide() else overlay(ctx).show()
     }
 
     fun onLaunchingApp() {
@@ -101,6 +125,7 @@ object DashboardController {
 
     private val fgListeners = mutableListOf<(String) -> Unit>()
     fun addForegroundListener(l: (String) -> Unit) { fgListeners += l }
+    fun removeForegroundListener(l: (String) -> Unit) { fgListeners -= l }
 
     /** Hay una llamada en curso (la pantalla nativa de Topway es una ventana flotante). */
     @Volatile var inCall = false
@@ -158,7 +183,7 @@ object DashboardController {
         when {
             pkg == ctx.packageName ->
                 if (cls == HomeActivity::class.java.name) onHomeShown(ctx) else overlay?.hide()   // Ajustes
-            pkg == mapPkg -> if (mapFullscreen || inCall) overlay?.hide() else overlay(ctx).show()
+            pkg == mapPkg -> if (mapFullscreen || inCall || reversing) overlay?.hide() else overlay(ctx).show()
             else -> {
                 mapFullscreen = false
                 overlay?.hide()

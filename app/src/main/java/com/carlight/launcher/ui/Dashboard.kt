@@ -264,6 +264,15 @@ class Dashboard(
         // Cajón de apps: velo del color del fondo elegido (no morado fijo)
         b.drawer.setBackgroundColor((bgStyle.bgStart and 0x00FFFFFF) or 0xF2000000.toInt())
 
+        // Marco del mapa: trazo fino del acento (contrasta con las calles) + resplandor exterior.
+        val d = ctx.resources.displayMetrics.density
+        b.cardMap.foreground = android.graphics.drawable.GradientDrawable().apply {
+            cornerRadius = ctx.resources.getDimension(R.dimen.card_radius)
+            setColor(0)
+            setStroke(maxOf(1, (1.5f * d).toInt()), accent.end)
+        }
+        wallpaper.setHoleGlow(accent.end)
+
         // Efectos visuales
         b.skyBadge.night = night
         b.btDisc.setAccent(accent.start, accent.end)
