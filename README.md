@@ -36,7 +36,14 @@
 - **Velocímetro GPS animado:** Indicador visual en arco de 0 a 180 km/h (o mph), con histéresis y filtrado de ruido en parado (< 3 km/h).
 - **Alerta de velocidad:** Notificación visual y auditiva cuando se supera el límite configurado.
 - **Computadora de a bordo:** Medición de distancia recorrida, velocidad media, velocidad máxima y tiempo de viaje.
-- **Mantenimiento y Combustible ("Mi Auto"):** Control de odómetro, registro de repostajes con cálculo de consumo real (km/l o km/gal), autonomía estimada y alertas de mantenimiento (cambio de aceite, filtros, neumáticos, frenos).
+- **Sistema de Mantenimiento y Alerta de Cambio de Aceite ("Mi Auto"):**
+  - **Monitoreo inteligente dual (Km y Tiempo):** Controla el **cambio de aceite de motor** (cada 5.000 km o 6 meses), **aceite de transmisión/caja** (cada 40.000 km) y **matriculación vehicular**.
+  - **Notificaciones visuales de estado y urgencia:**
+    - 🟢 **Al día:** Barra de progreso visual con el color de acento del tema.
+    - 🟡 **Próximo a vencer / Se acerca (Ámbar):** Aviso en la tarjeta de inicio cuando restan menos de 500 km o 15 días.
+    - 🔴 **Vencido (Rojo):** Alerta prioritaria con indicador de vencimiento.
+  - **Odómetro continuo:** Suma automática de distancia en tiempo real mediante satélites GPS (`TripComputer`) sincronizado con el kilometraje real del tablero.
+  - **Control de Combustible:** Registro de cargas de gasolina, cálculo de consumo real (km/l o km/gal), costo por kilómetro y proyección de autonomía restante.
 
 ### 🌓 Modo Día / Noche y Control de Brillo
 - Modos: Automático (por horario o aprendizaje de sensor de luces), Día y Noche.
@@ -59,8 +66,8 @@
 ├──────────────┤               MAPA EN VIVO               │   MHz · P4   │
 │    12:45     │                                          │   ⏪  ◯  ⏩  │
 │  jueves 12   │           (Organic Maps central          ├──────────────┤
-├──────────────┤              a toda la altura,           │  ◉   ◉   ◉   │
-│  ♪ BLUETOOTH │               100% táctil)               │ Maps Radio BT│
+├──────────────┤              a toda la altura,           │ -Cambio Aceite│
+│  ♪ BLUETOOTH │               100% táctil)               │ Notificaciones│
 │   Canción    │                                          │  ◉   ◉   ◉   │
 │  ⏮  (▶)  ⏭  │                                          │ Mús Conf Apps│
 └──────────────┴──────────────────────────────────────────┴──────────────┘
